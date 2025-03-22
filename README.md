@@ -67,5 +67,5 @@ JWT_SECRET=your-jwt-secret
 
 nodemon index.js
 
-🚀 Your User Service is now up and running! 🎉
+🚀 Your Captain Service is now up and running! 🎉
 
