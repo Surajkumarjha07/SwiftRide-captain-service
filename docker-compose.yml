@@ -1,0 +1,16 @@
+services:
+  captain-service:
+    build: .
+    image: captain-service-image
+    container_name: captain-service
+    restart: always
+    ports:
+      - "4002:4002"
+    env_file:
+      - .env
+    networks:
+      - users-kafka-net
+    
+networks:
+  users-kafka-net:
+    external: true

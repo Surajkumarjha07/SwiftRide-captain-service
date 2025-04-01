@@ -5,8 +5,8 @@ const prisma = new PrismaClient();
 
 async function handleRegisterCaptain(req, res) {
     try {
-        const { email, name, password, role } = req.body;
-        if (!email || !name || !password) {
+        const { email, name, password, role, location } = req.body;
+        if (!email || !name || !password || !role || !location) {
             res.status(400).json({
                 message: "Enter required details!"
             });
@@ -25,7 +25,7 @@ async function handleRegisterCaptain(req, res) {
         const salt = await bcrypt.genSalt(saltRounds);
         const hashedPassword = await bcrypt.hash(password, salt)
 
-        const captain = await prisma.captains.create({ data: { email, name, password: hashedPassword, role } });
+        const captain = await prisma.captains.create({ data: { email, name, password: hashedPassword, role, location } });
 
         res.status(200).json({
             message: "Captain created!",
