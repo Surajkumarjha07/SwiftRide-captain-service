@@ -12,4 +12,5 @@ router.post("/loginCaptain", handleCaptainLogIn);
 router.put("/updateCaptain", captainAuthenticate, handleUpdateCaptainInfo);
 router.delete("/deleteCaptain", captainAuthenticate, handleDeleteCaptain);
 
+
 export default router;
