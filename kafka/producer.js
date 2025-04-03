@@ -9,15 +9,15 @@ async function producerInit() {
     await producer.connect();
 }
 
-async function SendRideAccepted(data) {
+async function sendProducerMessage(topic, data) {
     try {
         await producer.send({
-            topic: "ride-request",
+            topic,
             messages: [{ value: JSON.stringify(data) }]
         })
     } catch (error) {
-        console.log("error in sending ride-request: ", error);
+        console.log(`error in sending ${topic}: ${error}`);
     }
 }
 
-export default { producerInit, SendRideAccepted };
+export default { producerInit, sendProducerMessage };

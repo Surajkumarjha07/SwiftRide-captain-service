@@ -1,17 +1,27 @@
 import kafka from "./kafkaClient.js"
+import captain from "../controllers/assignCaptain.js";
+import producer from "./producer.js";
 
-const consumer = kafka.consumer({ groupId: "captain-group-service" });
+const getCaptainConsumer = kafka.consumer({ groupId: "get-captain-group" });
+const acceptRideConsumer = kafka.consumer({groupId: "accept-ride-group"});
 
 async function consumerInit() {
-    await consumer.connect();
+    await getCaptainConsumer.connect();
+    await acceptRideConsumer.connect();
 }
 
 async function getCaptainRequest() {
     try {
-        await consumer.subscribe({ topic: "captain-notify", fromBeginning: true })
-        await consumer.run({
-            eachMessage: ({ message }) => {
-                console.log(`message from ride-service: ${message.value}`);
+        await getCaptainConsumer.subscribe({ topic: "get-captains", fromBeginning: true })
+        await getCaptainConsumer.run({
+            eachMessage: async ({ message }) => {
+                const location = JSON.parse(message.value).location;
+                if (location) {   
+                    console.log(`message from ride-service: ${location}`);
+                    
+                    const captains = await captain.findCaptain(location);
+                    await producer.sendProducerMessage("captains-fetched", captains);
+                }
             }
         })
     } catch (error) {
@@ -19,4 +29,17 @@ async function getCaptainRequest() {
     }
 }
 
-export default { consumerInit, getCaptainRequest };
+async function acceptRide() {
+    try {
+        await acceptRideConsumer.subscribe({topic: "accept-ride", fromBeginning: true});
+        await acceptRideConsumer.run({
+            eachMessage: async ({message}) => {
+                console.log("accept-ride: ", message.value.toString());                
+            }
+        })
+    } catch (error) {
+        console.log("error in getting accept ride request: ", error);
+    }
+}
+
+export default { consumerInit, getCaptainRequest, acceptRide };
