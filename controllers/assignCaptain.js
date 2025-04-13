@@ -17,4 +17,12 @@ async function findCaptain(location, res) {
     }
 }
 
-export default { findCaptain };
+async function rideAccepted(req, res) {
+    try {
+        
+    } catch (error) {
+        console.log("error in accepting ride!");        
+    }
+}
+
+export default { findCaptain, rideAccepted };

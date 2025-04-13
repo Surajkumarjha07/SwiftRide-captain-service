@@ -34,8 +34,8 @@ async function acceptRide() {
         await acceptRideConsumer.subscribe({topic: "accept-ride", fromBeginning: true});
         await acceptRideConsumer.run({
             eachMessage: async ({message}) => {
-                console.log("accept-ride: ", message.value.toString());                
-            }
+                console.log("accept-ride: ", message.value.toString());  
+            },
         })
     } catch (error) {
         console.log("error in getting accept ride request: ", error);
