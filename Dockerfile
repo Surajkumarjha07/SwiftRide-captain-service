@@ -1,9 +1,9 @@
-FROM node:18
+FROM node:latest
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install --omit dev
+RUN npm install --omit=dev
 
 COPY . .
 RUN npx prisma generate

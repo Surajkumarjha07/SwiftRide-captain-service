@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 
@@ -17,12 +17,12 @@ async function handleCaptainLogIn(req, res) {
             return;
         }
 
-        const captain = await prisma.captains.findFirst({ where: { email } })        
+        const captain = await prisma.captains.findFirst({ where: { email } })
 
         let passwordMatched;
         if (captain) {
             passwordMatched = await bcrypt.compare(password, captain.password);
-        }        
+        }
 
         if (!captain || !passwordMatched) {
             res.status(404).json({
@@ -31,12 +31,12 @@ async function handleCaptainLogIn(req, res) {
             return;
         }
 
-        const token = jwt.sign({ email, name: captain.name }, process.env.JWT_SECRET, { expiresIn: "1min" })
+        const token = jwt.sign({ email, id: captain.captainId, name: captain.name }, process.env.JWT_SECRET, { expiresIn: "1h" })
         res.cookie("authToken", token, {
             httpOnly: true,
             sameSite: 'None',
             secure: true,
-            maxAge: 60 * 1000,
+            maxAge: 60 * 60 * 1000,
             path: "/"
         })
 

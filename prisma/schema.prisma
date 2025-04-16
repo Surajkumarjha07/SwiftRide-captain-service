@@ -15,9 +15,16 @@ datasource db {
 
 model captains{
   id Int @id @default(autoincrement())
+  captainId String? @unique
   email String @unique
   name String
   password String
   role String
   location String?
+  isAvailable availability @default(AVAILABLE)
+}
+
+enum availability {
+  AVAILABLE
+  UNAVAILABLE
 }

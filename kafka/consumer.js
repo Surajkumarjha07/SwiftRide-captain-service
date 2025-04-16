@@ -1,5 +1,5 @@
 import kafka from "./kafkaClient.js"
-import captain from "../controllers/assignCaptain.js";
+import findCaptain from "../controllers/findCaptain.js";
 import producer from "./producer.js";
 
 const getCaptainConsumer = kafka.consumer({ groupId: "get-captain-group" });
@@ -15,11 +15,10 @@ async function getCaptainRequest() {
         await getCaptainConsumer.subscribe({ topic: "get-captains", fromBeginning: true })
         await getCaptainConsumer.run({
             eachMessage: async ({ message }) => {
-                const location = JSON.parse(message.value).location;
-                if (location) {   
-                    console.log(`message from ride-service: ${location}`);
-                    
-                    const captains = await captain.findCaptain(location);
+                const location = JSON.parse(message.value).pickUpLocation;
+                
+                if (location) {                    
+                    const captains = await findCaptain(location);
                     await producer.sendProducerMessage("captains-fetched", captains);
                 }
             }
@@ -34,6 +33,7 @@ async function acceptRide() {
         await acceptRideConsumer.subscribe({topic: "accept-ride", fromBeginning: true});
         await acceptRideConsumer.run({
             eachMessage: async ({message}) => {
+                // later we will emit sockets
                 console.log("accept-ride: ", message.value.toString());  
             },
         })

@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -21,11 +21,19 @@ async function handleRegisterCaptain(req, res) {
             })
         }
 
+        const alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklomnopqrstuvwxyz_-@#$&";
+        let captainId = '';
+
+        for (let i = 0; i < 30; i++) {
+            let pos = Math.floor(Math.random() * alpha.length)
+            captainId = captainId + alpha[pos];
+        }
+
         const saltRounds = 10;
         const salt = await bcrypt.genSalt(saltRounds);
         const hashedPassword = await bcrypt.hash(password, salt)
 
-        const captain = await prisma.captains.create({ data: { email, name, password: hashedPassword, role, location } });
+        const captain = await prisma.captains.create({ data: { email, name, password: hashedPassword, role, location, captainId } });
 
         res.status(200).json({
             message: "Captain created!",
