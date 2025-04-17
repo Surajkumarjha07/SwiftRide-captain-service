@@ -24,7 +24,7 @@ async function handleRegisterCaptain(req, res) {
         const alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklomnopqrstuvwxyz_-@#$&";
         let captainId = '';
 
-        for (let i = 0; i < 30; i++) {
+        for (let i = 0; i < 15; i++) {
             let pos = Math.floor(Math.random() * alpha.length)
             captainId = captainId + alpha[pos];
         }

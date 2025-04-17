@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import kafkaInit from "./kafka/kafkaAdmin.js";
 import consumer from "./kafka/consumer.js";
 import producer from "./kafka/producer.js";
+import rideRoutes from "./routes/rideRoutes.js";
 
 dotenv.config();
 
@@ -41,6 +42,7 @@ const startKafka = async () => {
 startKafka(); 
 
 app.use("/actions", captainRoutes);
+app.use("/rides", rideRoutes);
 
 app.listen(process.env.PORT, () => {
     console.log("Captain service is running!");
