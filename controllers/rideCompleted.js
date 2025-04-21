@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { availability, PrismaClient } from "@prisma/client";
 import producer from "../kafka/producer.js";
 
 const prisma = new PrismaClient();
@@ -16,7 +16,7 @@ async function handleRideCompleted(req, res) {
         await prisma.captains.update({
             where: { captainId: id },
             data: {
-                isAvailable: "AVAILABLE"
+                isAvailable: availability.AVAILABLE
             }
         })
 
