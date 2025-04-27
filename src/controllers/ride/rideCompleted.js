@@ -1,5 +1,5 @@
 import { availability, PrismaClient } from "@prisma/client";
-import producer from "../kafka/producer.js";
+import producer from "../../kafka/producerInIt.js";
 
 const prisma = new PrismaClient();
 

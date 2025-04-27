@@ -1,8 +1,8 @@
 import express from "express";
-import handleUpdateCaptainInfo from "../controllers/update.js";
-import handleCaptainLogIn from "../controllers/logIn.js";
-import handleRegisterCaptain from "../controllers/signUp.js";
-import handleDeleteCaptain from "../controllers/delete.js";
+import handleUpdateCaptainInfo from "../controllers/user/update.js";
+import handleCaptainLogIn from "../controllers/user/logIn.js";
+import handleRegisterCaptain from "../controllers/user/signUp.js";
+import handleDeleteCaptain from "../controllers/user/delete.js";
 import captainAuthenticate from "../middlewares/captainAuth.js";
 
 const router = express.Router();

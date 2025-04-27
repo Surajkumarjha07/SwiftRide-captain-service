@@ -1,7 +1,7 @@
 import { Router } from "express";
 import captainAuthenticate from "../middlewares/captainAuth.js";
-import handleRideAccepted from "../controllers/rideAccepted.js";
-import handleRideCompleted from "../controllers/rideCompleted.js";
+import handleRideAccepted from "../controllers/ride/rideAccepted.js";
+import handleRideCompleted from "../controllers/ride/rideCompleted.js";
 
 const router = Router();
 
