@@ -6,14 +6,12 @@ import dotenv from "dotenv";
 const prisma = new PrismaClient();
 dotenv.config();
 
-const signUpUser = async ({ email, name, password, role, location }) => {
+const signUpCaptain = async ({ email, name, password, role, location }) => {
     try {
         const existingCaptain = await prisma.captains.findFirst({ where: { email } })
 
         if (existingCaptain) {
-            return res.status(409).json({
-                message: "Email already exists!"
-            })
+            throw new Error("Email already exists!");
         }
 
         const alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklomnopqrstuvwxyz_-@#$&";
@@ -31,11 +29,12 @@ const signUpUser = async ({ email, name, password, role, location }) => {
         return await prisma.captains.create({ data: { email: email.trim(), name: name.trim(), password: hashedPassword.trim(), role: role.trim(), location: location.trim(), captainId: captainId.trim() } });
 
     } catch (error) {
-        throw new Error("signUp service error: ", error.message);
+        console.log("SignUp service error: ", error.message);
+        throw error;
     }
 }
 
-const logInUser = async ({ email, password }) => {
+const logInCaptain = async ({ email, password }) => {
     try {
         const captain = await prisma.captains.findFirst({ where: { email } })
 
@@ -45,21 +44,19 @@ const logInUser = async ({ email, password }) => {
         }
 
         if (!captain || !passwordMatched) {
-            res.status(404).json({
-                message: "Incorrect email or password!"
-            });
-            return;
+            throw new Error("Incorrect email or password!");
         }
 
         const token = jwt.sign({ email, id: captain.captainId, name: captain.name }, process.env.JWT_SECRET, { expiresIn: "1h" })
         return token;
 
     } catch (error) {
-        throw new Error("logIn service error: ", error.message)
+        console.log("LogIn service error: ", error.message);
+        throw error;
     }
 }
 
-const updateUser = async ({ newEmail, newName, newPassword, newRole, oldPassword, email }) => {
+const updateCaptain = async ({ newEmail, newName, newPassword, newRole, oldPassword, email }) => {
     try {
         const captain = await prisma.captains.findFirst({
             where: { email }
@@ -71,9 +68,7 @@ const updateUser = async ({ newEmail, newName, newPassword, newRole, oldPassword
         }
 
         if (!passwordMatched || !captain) {
-            return res.status(400).json({
-                message: "Incorrect Email or Password!"
-            })
+            throw new Error("Incorrect Email or Password!");
         }
 
         const saltRounds = 10;
@@ -88,11 +83,12 @@ const updateUser = async ({ newEmail, newName, newPassword, newRole, oldPassword
         return updatedCaptain;
 
     } catch (error) {
-       throw new Error("update service error: ", error.message);
+        console.log("Update service error: ", error.message);
+        throw error;
     }
 }
 
-const deleteUser = async ({email, password}) => {
+const deleteCaptain = async ({ email, password }) => {
     try {
         const captain = await prisma.captains.findFirst({ where: { email } })
 
@@ -102,9 +98,7 @@ const deleteUser = async ({email, password}) => {
         }
 
         if (!captain || !passwordMatched) {
-            return res.status(400).json({
-                message: "Incorrect email or password!"
-            });
+            throw new Error("Incorrect Email or Password!");
         }
 
         const deletedCaptain = await prisma.captains.delete({ where: { email } });
@@ -112,8 +106,9 @@ const deleteUser = async ({email, password}) => {
         return deletedCaptain;
 
     } catch (error) {
-        throw new Error("delete service error: ", error.message);
+        console.log("delete service error: ", error.message);
+        throw error;
     }
 }
 
-export const userService = { signUpUser, logInUser, updateUser, deleteUser };
+export const captainService = { signUpCaptain, logInCaptain, updateCaptain, deleteCaptain };

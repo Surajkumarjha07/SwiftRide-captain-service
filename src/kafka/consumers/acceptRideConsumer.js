@@ -1,3 +1,4 @@
+import { acceptRideConsumer } from "../consumerInIt.js";
 import acceptRideHandler from "../handlers/acceptRideHandler.js";
 
 async function acceptRide() {

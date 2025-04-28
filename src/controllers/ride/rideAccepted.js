@@ -1,7 +1,4 @@
-import producer from "../../kafka/producerInIt.js";
-import { PrismaClient, availability } from "@prisma/client";
-
-const prisma = new PrismaClient(); 
+import { rideService } from "../../services/rideService.js";
 
 async function handleRideAccepted(req, res) {
     try {
@@ -12,14 +9,8 @@ async function handleRideAccepted(req, res) {
             })
         }
 
-        await producer.sendProducerMessage("ride-accepted", id);
-        await prisma.captains.update({
-            where: {captainId: id},
-            data:{
-                isAvailable: availability.UNAVAILABLE
-            }
-        })
-
+        await rideService.rideAccept(id);
+        
         res.status(200).json({
             message: `Ride accepted by: ${id}`
         })

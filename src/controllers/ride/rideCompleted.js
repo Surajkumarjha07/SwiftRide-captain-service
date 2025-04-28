@@ -1,7 +1,4 @@
-import { availability, PrismaClient } from "@prisma/client";
-import producer from "../../kafka/producerInIt.js";
-
-const prisma = new PrismaClient();
+import { rideService } from "../../services/rideService.js";
 
 async function handleRideCompleted(req, res) {
     try {
@@ -13,21 +10,14 @@ async function handleRideCompleted(req, res) {
             })
         }
 
-        await prisma.captains.update({
-            where: { captainId: id },
-            data: {
-                isAvailable: availability.AVAILABLE
-            }
-        })
-
-        await producer.sendProducerMessage("ride-completed", id);        
+        await rideService.rideComplete(id);
 
         res.status(200).json({
             message: "ride completed!"
         })
 
     } catch (error) {
-        console.log("error in completing ride! ", error);        
+        console.log("error in completing ride! ", error);
     }
 }
 

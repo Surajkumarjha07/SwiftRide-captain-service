@@ -1,4 +1,4 @@
-import { userService } from "../../services/userService.js";
+import { captainService } from "../../services/captainService.js";
 
 async function handleCaptainLogIn(req, res) {
     try {
@@ -11,7 +11,7 @@ async function handleCaptainLogIn(req, res) {
             return;
         }
 
-        const token = await userService.logInUser({ email, password })
+        const token = await captainService.logInCaptain({ email, password })
 
         res.cookie("authToken", token, {
             httpOnly: true,
@@ -27,8 +27,8 @@ async function handleCaptainLogIn(req, res) {
         })
 
     } catch (error) {
-        res.status(500).json({
-            message: "Internal server error!"
+        return res.status(400).json({
+            message: error.message || "Internal server error!"
         })
     }
 }

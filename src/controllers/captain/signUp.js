@@ -1,4 +1,4 @@
-import { userService } from "../../services/userService.js";
+import { captainService } from "../../services/captainService.js";
 
 async function handleRegisterCaptain(req, res) {
     try {
@@ -11,7 +11,7 @@ async function handleRegisterCaptain(req, res) {
             return;
         }
 
-        const captain = await userService.signUpUser({ email, name, password, role, location });
+        const captain = await captainService.signUpCaptain({ email, name, password, role, location });
 
         res.status(200).json({
             message: "Captain created!",
@@ -19,8 +19,8 @@ async function handleRegisterCaptain(req, res) {
         })
 
     } catch (error) {
-        res.status(500).json({
-            message: "Internal server error!"
+        return res.status(400).json({
+            message: error.message || "Internal server error!"
         })
     }
 }
