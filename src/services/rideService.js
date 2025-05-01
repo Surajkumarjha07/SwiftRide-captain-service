@@ -1,7 +1,6 @@
-import { PrismaClient, availability } from "@prisma/client";
-import sendProducerMessage from "../../../user-service/src/kafka/producers/producerTemplate.js";
-
-const prisma = new PrismaClient();
+import { availability } from "@prisma/client";
+import sendProducerMessage from "../kafka/producers/producerTemplate.js"
+import prisma from "../prisma/prismaClient.js";
 
 async function rideAccept(id) {
     try {

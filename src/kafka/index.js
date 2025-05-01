@@ -2,7 +2,7 @@ import { consumerInit } from "./consumerInIt.js";
 import getCaptainRequest from "./consumers/getCaptainConsumer.js";
 import acceptRideHandler from "./handlers/acceptRideHandler.js";
 import kafkaInit from "./kafkaAdmin.js";
-import producerInit from "./producerInIt.js";
+import { producerInit } from "./producerInIt.js";
 
 const startKafka = async () => {
     try {

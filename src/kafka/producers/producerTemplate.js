@@ -1,4 +1,4 @@
-import { producer } from "../producerInIt";
+import { producer } from "../producerInIt.js";
 
 async function sendProducerMessage(topic, data) {
     try {
