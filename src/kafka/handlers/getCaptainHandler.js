@@ -1,5 +1,5 @@
-import { producer } from "../producerInIt.js";
 import findCaptain from "../../controllers/ride/findCaptain.js"
+import sendProducerMessage from "../producers/producerTemplate.js";
 
 async function getCaptainHandler({ message }) {
     const location = JSON.parse(message.value).pickUpLocation;
@@ -7,7 +7,7 @@ async function getCaptainHandler({ message }) {
 
     if (location) {
         const captains = await findCaptain(location);
-        await producer.sendProducerMessage("captains-fetched", { captains, rideData });
+        await sendProducerMessage("captains-fetched", { captains, rideData });
     }
 }
 

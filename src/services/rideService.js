@@ -1,6 +1,7 @@
 import { availability } from "@prisma/client";
 import sendProducerMessage from "../kafka/producers/producerTemplate.js"
 import prisma from "../prisma/prismaClient.js";
+import redisClient from "../redis/redisClient.js";
 
 async function rideAccept(id) {
     try {
@@ -11,6 +12,8 @@ async function rideAccept(id) {
                 isAvailable: availability.UNAVAILABLE
             }
         })
+
+        // const rideData = await redisClient.hmget(`ride:${}`)
 
     } catch (error) {
         console.log("Ride accept service error: ", error.message);
