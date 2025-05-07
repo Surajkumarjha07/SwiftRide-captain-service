@@ -1,15 +1,13 @@
 import redisClient from "../../redis/redisClient.js";
-import sendProducerMessage from "../producers/producerTemplate.js";
 
 async function acceptRideHandler({ message }) {
-    const { rideData } = JSON.parse(message.value.toString());
-    const { rideId } = rideData;
+    const { rideData, captain } = JSON.parse(message.value.toString());
+    const { captainId } = captain;
 
-    await redisClient.hmset(`ride:${rideId}`, rideData);
-    await redisClient.expire(`ride:${rideId}`, 3600);
-    await sendProducerMessage("ride-saved", rideId);
+    await redisClient.hmset(`ride:${captainId}`, rideData);
+    await redisClient.expire(`ride:${captainId}`, 3600);
 
-    // later we will emit sockets
+    // later we will emit sockets for mobile interactivity
 }
 
 export default acceptRideHandler;

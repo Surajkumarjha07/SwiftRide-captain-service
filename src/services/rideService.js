@@ -5,7 +5,6 @@ import redisClient from "../redis/redisClient.js";
 
 async function rideAccept(id) {
     try {
-        await sendProducerMessage("ride-accepted", id);
         await prisma.captains.update({
             where: { captainId: id },
             data: {
@@ -13,7 +12,8 @@ async function rideAccept(id) {
             }
         })
 
-        // const rideData = await redisClient.hmget(`ride:${}`)
+        const rideData = await redisClient.hgetall(`ride:${id}`);
+        await sendProducerMessage("ride-accepted", { id, rideData });
 
     } catch (error) {
         console.log("Ride accept service error: ", error.message);
