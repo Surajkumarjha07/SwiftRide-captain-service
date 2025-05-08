@@ -5,7 +5,7 @@ async function acceptRideHandler({ message }) {
     const { captainId } = captain;
 
     await redisClient.hmset(`ride:${captainId}`, rideData);
-    await redisClient.expire(`ride:${captainId}`, 3600);
+    await redisClient.expire(`ride:${captainId}`, 24*3600);
 
     // later we will emit sockets for mobile interactivity
 }

@@ -5,8 +5,8 @@ import redisClient from "../redis/redisClient.js";
 
 async function rideAccept(id) {
     try {
-        await prisma.captains.update({
-            where: { captainId: id },
+        await prisma.captains.updateMany({
+            where: { captainId: id, isAvailable: availability.AVAILABLE },
             data: {
                 isAvailable: availability.UNAVAILABLE
             }
@@ -33,14 +33,18 @@ async function findCaptain(location) {
 
 async function rideComplete(id) {
     try {
-        await prisma.captains.update({
-            where: { captainId: id },
+        await prisma.captains.updateMany({
+            where: { captainId: id, isAvailable: availability.UNAVAILABLE },
             data: {
                 isAvailable: availability.AVAILABLE
             }
         })
 
-        await sendProducerMessage("ride-completed", id);
+        const rideData = await redisClient.hgetall(`ride:${id}`);
+
+        if (id && rideData) {
+            await sendProducerMessage("ride-completed", { id, rideData });
+        }
     } catch (error) {
         console.log("Ride Complete service error: ", error.message);
         throw error;
