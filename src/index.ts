@@ -1,9 +1,10 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import captainRoutes from "./routes/captainRoutes.js";
 import cookieParser from "cookie-parser";
 import rideRoutes from "./routes/rideRoutes.js";
 import startKafka from "./kafka/index.js";
+import CaptainPayload from "./types/captainPayload.js";
 
 dotenv.config();
 
@@ -22,6 +23,6 @@ startKafka();
 app.use("/actions", captainRoutes);
 app.use("/rides", rideRoutes);
 
-app.listen(process.env.PORT, () => {
+app.listen(Number(process.env.PORT), () => {
     console.log("Captain service is running!");
 })

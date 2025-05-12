@@ -1,7 +1,8 @@
+import { EachMessagePayload } from "kafkajs";
 import redisClient from "../../redis/redisClient.js";
 
-async function acceptRideHandler({ message }) {
-    const { rideData, captain } = JSON.parse(message.value.toString());
+async function acceptRideHandler({ message }: EachMessagePayload) {
+    const { rideData, captain } = JSON.parse(message.value!.toString());
     const { captainId } = captain;
 
     await redisClient.hmset(`ride:${captainId}`, rideData);

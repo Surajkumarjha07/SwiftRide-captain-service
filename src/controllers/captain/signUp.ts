@@ -1,6 +1,7 @@
-import { captainService } from "../../services/captainService.js";
+import { Request, Response } from "express";
+import { captainService } from "../../services/captainServices/index.js";
 
-async function handleRegisterCaptain(req, res) {
+async function handleRegisterCaptain(req: Request, res: Response) {
     try {
         const { email, name, password, role, location } = req.body;
 
@@ -19,9 +20,12 @@ async function handleRegisterCaptain(req, res) {
         })
 
     } catch (error) {
-        return res.status(400).json({
-            message: error.message || "Internal server error!"
-        })
+        if (error instanceof Error) {   
+            res.status(400).json({
+                message: error.message || "Internal server error!"
+            });
+            return;
+        }
     }
 }
 

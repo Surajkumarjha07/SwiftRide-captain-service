@@ -1,6 +1,6 @@
 import { producer } from "../producerInIt.js";
 
-async function sendProducerMessage(topic, data) {
+async function sendProducerMessage(topic: string, data: {}) {
     try {
         await producer.send({
             topic,

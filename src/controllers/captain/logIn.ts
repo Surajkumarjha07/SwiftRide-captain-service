@@ -1,6 +1,7 @@
-import { captainService } from "../../services/captainService.js";
+import { Request, Response } from "express";
+import { captainService } from "../../services/captainServices/index.js";
 
-async function handleCaptainLogIn(req, res) {
+async function handleCaptainLogIn(req: Request, res: Response) {
     try {
         const { email, password } = req.body;
 
@@ -13,9 +14,9 @@ async function handleCaptainLogIn(req, res) {
 
         const token = await captainService.logInCaptain({ email, password })
 
-        res.cookie("authToken", token, {
+        res.cookie("authToken", token!, {
             httpOnly: true,
-            sameSite: 'None',
+            sameSite: 'none',
             secure: true,
             maxAge: 60 * 60 * 1000,
             path: "/"
@@ -27,9 +28,11 @@ async function handleCaptainLogIn(req, res) {
         })
 
     } catch (error) {
-        return res.status(400).json({
-            message: error.message || "Internal server error!"
-        })
+        if (error instanceof Error) {
+            res.status(400).json({
+                message: error.message || "Internal server error!"
+            });
+        }
     }
 }
 
