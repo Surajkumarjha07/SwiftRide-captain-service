@@ -1,5 +1,5 @@
 type CaptainPayload = {
-    id: string,
+    captainId: string,
     name: string,
     email: string
 }

@@ -4,16 +4,17 @@ import CaptainPayload from "../../types/captainPayload.js";
 
 async function handleRideCompleted(req: Request, res: Response) {
     try {
-        const { id } = req.captain as CaptainPayload;
+        const { rideId } = req.body;
+        const { captainId } = req.captain as CaptainPayload;
 
-        if (!id) {
+        if (!captainId) {
             res.status(400).json({
                 message: "Id not available"
             });
             return;
         }
 
-        await rideService.rideComplete(id);
+        await rideService.rideComplete(captainId, rideId);
 
         res.status(200).json({
             message: "ride completed!"

@@ -2,7 +2,7 @@ import { acceptRideConsumer } from "../consumerInIt.js";
 import acceptRideHandler from "../handlers/acceptRideHandler.js";
 
 async function acceptRide() {
-    try {
+    try {        
         await acceptRideConsumer.subscribe({ topic: "accept-ride", fromBeginning: true });
         await acceptRideConsumer.run({
             eachMessage: acceptRideHandler

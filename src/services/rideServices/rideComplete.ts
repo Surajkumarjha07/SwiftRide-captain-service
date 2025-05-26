@@ -3,19 +3,19 @@ import prisma from "../../prisma/prismaClient.js";
 import redisClient from "../../redis/redisClient.js";
 import sendProducerMessage from "../../kafka/producers/producerTemplate.js";
 
-async function rideComplete(id: string) {
+async function rideComplete(captainId: string, rideId: string) {
     try {
         await prisma.captains.updateMany({
-            where: { captainId: id, isAvailable: availability.UNAVAILABLE },
+            where: { captainId: captainId, isAvailable: availability.UNAVAILABLE },
             data: {
                 isAvailable: availability.AVAILABLE
             }
         });
 
-        const rideData = await redisClient.hgetall(`ride:${id}`);
+        const rideData = await redisClient.hgetall(`ride:${rideId}`);
 
-        if (id && rideData) {
-            await sendProducerMessage("ride-completed", { id, rideData });
+        if (captainId && rideData) {
+            await sendProducerMessage("ride-completed", { captainId, rideData });
         }
     } catch (error) {
         if (error instanceof Error) {

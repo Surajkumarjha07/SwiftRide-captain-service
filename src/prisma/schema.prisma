@@ -13,15 +13,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model captains{
-  id Int @id @default(autoincrement())
-  captainId String? @unique
-  email String @unique
-  name String
-  password String
-  role String
-  location String?
+model captains {
+  id          Int          @id @default(autoincrement())
+  captainId   String?      @unique
+  email       String       @unique
+  name        String
+  password    String
+  role        String
+  latitude    Float?       @default(0.00)
+  longitude   Float?       @default(0.00)
   isAvailable availability @default(AVAILABLE)
+
+  @@index([latitude, longitude])
 }
 
 enum availability {

@@ -19,7 +19,7 @@ const logInCaptain = async ({ email, password }: loginType) => {
             throw new Error("Incorrect email or password!");
         }
 
-        const token = jwt.sign({ email, id: captain.captainId, name: captain.name }, process.env.JWT_SECRET!, { expiresIn: "1h" })
+        const token = jwt.sign({ captainEmail: email, captainId: captain.captainId, captainName: captain.name }, process.env.JWT_SECRET!, { expiresIn: "1h" })
         return token;
 
     } catch (error) {

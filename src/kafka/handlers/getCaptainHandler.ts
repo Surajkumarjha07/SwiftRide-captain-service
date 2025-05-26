@@ -1,13 +1,18 @@
 import { EachMessagePayload } from "kafkajs";
 import sendProducerMessage from "../producers/producerTemplate.js";
-import { rideService } from "../../services/rideServices/index.js";
+import findCaptains from "../../utils/findCaptains.js";
 
 async function getCaptainHandler({ message }: EachMessagePayload) {
-    const location = JSON.parse(message.value!.toString()).pickUpLocation;
     const rideData = JSON.parse(message.value!.toString());
+    const { pickUpLocation_latitude, pickUpLocation_longitude } = rideData;
 
-    if (location) {
-        const captains = await rideService.findCaptainHandler(location);
+    if (pickUpLocation_latitude && pickUpLocation_longitude) {
+        const captains = await findCaptains({ pickUpLocation_latitude, pickUpLocation_longitude }, 5);
+
+        if (!captains) {
+            await sendProducerMessage("no-captain-found", { rideData });
+        }
+
         await sendProducerMessage("captains-fetched", { captains, rideData });
     }
 }

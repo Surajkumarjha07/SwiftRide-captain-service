@@ -4,18 +4,20 @@ import CaptainPayload from "../../types/captainPayload.js";
 
 async function handleRideAccepted(req: Request, res: Response) {
     try {
-        const { id } = req.captain as CaptainPayload;
-        if (!id) {
+        const { rideId } = req.body;
+        const { captainId } = req.captain as CaptainPayload;
+
+        if (!captainId) {
             res.status(400).json({
                 message: "Captain not authorized"
             });
             return;
         }
 
-        await rideService.rideAccept(id);
+        await rideService.rideAccept(captainId, rideId);
 
         res.status(200).json({
-            message: `Ride accepted by: ${id}`
+            message: `Ride accepted by: ${captainId}`
         })
 
     } catch (error) {

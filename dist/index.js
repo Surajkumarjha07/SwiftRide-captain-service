@@ -48,7 +48,7 @@ var logInCaptain = async ({ email, password }) => {
     if (!captain || !passwordMatched) {
       throw new Error("Incorrect email or password!");
     }
-    const token = jwt.sign({ email, id: captain.captainId, name: captain.name }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    const token = jwt.sign({ captainEmail: email, captainId: captain.captainId, captainName: captain.name }, process.env.JWT_SECRET, { expiresIn: "1h" });
     return token;
   } catch (error) {
     if (error instanceof Error) {
@@ -61,7 +61,7 @@ var logInCaptainService_default = logInCaptain;
 
 // src/services/captainServices/signUpCaptainService.ts
 import bcrypt3 from "bcryptjs";
-var signUpCaptain = async ({ email, name, password, role, location }) => {
+var signUpCaptain = async ({ email, name, password, role, latitude, longitude }) => {
   try {
     const existingCaptain = await prismaClient_default.captains.findFirst({ where: { email } });
     if (existingCaptain) {
@@ -76,7 +76,7 @@ var signUpCaptain = async ({ email, name, password, role, location }) => {
     const saltRounds = 10;
     const salt = await bcrypt3.genSalt(saltRounds);
     const hashedPassword = await bcrypt3.hash(password, salt);
-    return await prismaClient_default.captains.create({ data: { email: email.trim(), name: name.trim(), password: hashedPassword.trim(), role: role.trim(), location: location.trim(), captainId: captainId.trim() } });
+    return await prismaClient_default.captains.create({ data: { email: email.trim(), name: name.trim(), password: hashedPassword.trim(), role: role.trim(), latitude, longitude, captainId: captainId.trim() } });
   } catch (error) {
     if (error instanceof Error) {
       console.log("SignUp service error: ", error.message);
@@ -176,14 +176,14 @@ var logIn_default = handleCaptainLogIn;
 // src/controllers/captain/signUp.ts
 async function handleRegisterCaptain(req, res) {
   try {
-    const { email, name, password, role, location } = req.body;
-    if (!email || !name || !password || !role || !location) {
+    const { email, name, password, role, latitude, longitude } = req.body;
+    if (!email || !name || !password || !role) {
       res.status(400).json({
         message: "Enter required details!"
       });
       return;
     }
-    const captain = await captainService.signUpCaptain({ email, name, password, role, location });
+    const captain = await captainService.signUpCaptain({ email, name, password, role, latitude, longitude });
     res.status(200).json({
       message: "Captain created!",
       captain
@@ -255,23 +255,8 @@ import cookieParser from "cookie-parser";
 // src/routes/rideRoutes.ts
 import { Router } from "express";
 
-// src/services/rideServices/findCaptains.ts
-import { availability } from "@prisma/client";
-async function findCaptains(location) {
-  try {
-    const captains = await prismaClient_default.captains.findMany({ where: { location, isAvailable: availability.AVAILABLE } });
-    return captains;
-  } catch (error) {
-    if (error instanceof Error) {
-      console.log("Find captain service error: ", error.message);
-      throw error;
-    }
-  }
-}
-var findCaptains_default = findCaptains;
-
 // src/services/rideServices/rideAccept.ts
-import { availability as availability2 } from "@prisma/client";
+import { availability } from "@prisma/client";
 
 // src/redis/redisClient.ts
 import { Redis } from "ioredis";
@@ -318,16 +303,16 @@ async function sendProducerMessage(topic, data) {
 var producerTemplate_default = sendProducerMessage;
 
 // src/services/rideServices/rideAccept.ts
-async function rideAccept(id) {
+async function rideAccept(captainId, rideId) {
   try {
     await prismaClient_default.captains.updateMany({
-      where: { captainId: id, isAvailable: availability2.AVAILABLE },
+      where: { captainId, isAvailable: availability.AVAILABLE },
       data: {
-        isAvailable: availability2.UNAVAILABLE
+        isAvailable: availability.UNAVAILABLE
       }
     });
-    const rideData = await redisClient_default.hgetall(`ride:${id}`);
-    await producerTemplate_default("ride-accepted", { id, rideData });
+    const rideData = await redisClient_default.hgetall(`ride:${rideId}`);
+    await producerTemplate_default("ride-accepted", { captainId, rideData });
   } catch (error) {
     if (error instanceof Error) {
       console.log("Ride accept service error: ", error.message);
@@ -338,18 +323,18 @@ async function rideAccept(id) {
 var rideAccept_default = rideAccept;
 
 // src/services/rideServices/rideComplete.ts
-import { availability as availability3 } from "@prisma/client";
-async function rideComplete(id) {
+import { availability as availability2 } from "@prisma/client";
+async function rideComplete(captainId, rideId) {
   try {
     await prismaClient_default.captains.updateMany({
-      where: { captainId: id, isAvailable: availability3.UNAVAILABLE },
+      where: { captainId, isAvailable: availability2.UNAVAILABLE },
       data: {
-        isAvailable: availability3.AVAILABLE
+        isAvailable: availability2.AVAILABLE
       }
     });
-    const rideData = await redisClient_default.hgetall(`ride:${id}`);
-    if (id && rideData) {
-      await producerTemplate_default("ride-completed", { id, rideData });
+    const rideData = await redisClient_default.hgetall(`ride:${rideId}`);
+    if (captainId && rideData) {
+      await producerTemplate_default("ride-completed", { captainId, rideData });
     }
   } catch (error) {
     if (error instanceof Error) {
@@ -361,21 +346,22 @@ async function rideComplete(id) {
 var rideComplete_default = rideComplete;
 
 // src/services/rideServices/index.ts
-var rideService = { rideAccept: rideAccept_default, findCaptains: findCaptains_default, rideComplete: rideComplete_default };
+var rideService = { rideAccept: rideAccept_default, rideComplete: rideComplete_default };
 
 // src/controllers/ride/rideAccepted.ts
 async function handleRideAccepted(req, res) {
   try {
-    const { id } = req.captain;
-    if (!id) {
+    const { rideId } = req.body;
+    const { captainId } = req.captain;
+    if (!captainId) {
       res.status(400).json({
         message: "Captain not authorized"
       });
       return;
     }
-    await rideService.rideAccept(id);
+    await rideService.rideAccept(captainId, rideId);
     res.status(200).json({
-      message: `Ride accepted by: ${id}`
+      message: `Ride accepted by: ${captainId}`
     });
   } catch (error) {
     if (error instanceof Error) {
@@ -390,14 +376,15 @@ var rideAccepted_default = handleRideAccepted;
 // src/controllers/ride/rideCompleted.ts
 async function handleRideCompleted(req, res) {
   try {
-    const { id } = req.captain;
-    if (!id) {
+    const { rideId } = req.body;
+    const { captainId } = req.captain;
+    if (!captainId) {
       res.status(400).json({
         message: "Id not available"
       });
       return;
     }
-    await rideService.rideComplete(id);
+    await rideService.rideComplete(captainId, rideId);
     res.status(200).json({
       message: "ride completed!"
     });
@@ -431,10 +418,16 @@ async function consumerInit() {
 
 // src/kafka/handlers/acceptRideHandler.ts
 async function acceptRideHandler({ message }) {
-  const { rideData, captain } = JSON.parse(message.value.toString());
-  const { captainId } = captain;
-  await redisClient_default.hmset(`ride:${captainId}`, rideData);
-  await redisClient_default.expire(`ride:${captainId}`, 24 * 3600);
+  try {
+    const { captain, rideData } = JSON.parse(message.value.toString());
+    const { rideId } = rideData;
+    await redisClient_default.hmset(`ride:${rideId}`, rideData);
+    await redisClient_default.expire(`ride:${rideId}`, 24 * 3600);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error("Error in acceptRideHandler: " + error.message);
+    }
+  }
 }
 var acceptRideHandler_default = acceptRideHandler;
 
@@ -451,12 +444,51 @@ async function acceptRide() {
 }
 var acceptRideConsumer_default = acceptRide;
 
+// src/utils/findCaptains.ts
+import { availability as availability3 } from "@prisma/client";
+import { getBoundsOfDistance } from "geolib";
+async function findCaptains(locationCoordinates, radius) {
+  try {
+    const { pickUpLocation_latitude: userLatitude, pickUpLocation_longitude: userLongitude } = locationCoordinates;
+    const radiusInMeter = radius * 1e3;
+    const bounds = getBoundsOfDistance(
+      { latitude: userLatitude, longitude: userLongitude },
+      radiusInMeter
+    );
+    const [sw, ne] = bounds;
+    const captains = await prismaClient_default.$queryRaw`
+            SELECT * FROM captains
+            WHERE
+                latitude BETWEEN ${sw.latitude} AND ${ne.latitude}
+                AND
+                longitude BETWEEN ${sw.longitude} AND ${ne.longitude}
+                AND
+                isAvailable=${availability3.AVAILABLE}
+                AND
+                ST_distance_sphere(
+                    point(${userLatitude}, ${userLongitude}),
+                    point(latitude, longitude)
+                ) <= ${radiusInMeter}
+            `;
+    return captains;
+  } catch (error) {
+    if (error instanceof Error) {
+      console.log("Find captain service error: ", error.message);
+      throw error;
+    }
+  }
+}
+var findCaptains_default = findCaptains;
+
 // src/kafka/handlers/getCaptainHandler.ts
 async function getCaptainHandler({ message }) {
-  const location = JSON.parse(message.value.toString()).pickUpLocation;
   const rideData = JSON.parse(message.value.toString());
-  if (location) {
-    const captains = await rideService.findCaptainHandler(location);
+  const { pickUpLocation_latitude, pickUpLocation_longitude } = rideData;
+  if (pickUpLocation_latitude && pickUpLocation_longitude) {
+    const captains = await findCaptains_default({ pickUpLocation_latitude, pickUpLocation_longitude }, 5);
+    if (!captains) {
+      await producerTemplate_default("no-captain-found", { rideData });
+    }
     await producerTemplate_default("captains-fetched", { captains, rideData });
   }
 }
@@ -524,6 +556,16 @@ app.get("/", (req, res) => {
 kafka_default();
 app.use("/actions", captainRoutes_default);
 app.use("/rides", rideRoutes_default);
+app.post("/loc", async (req, res) => {
+  const { locationCoordinates } = req.body;
+  try {
+    const captains = await findCaptains_default(locationCoordinates, 5);
+    res.json(captains);
+  } catch (error) {
+    console.error("Error finding captains:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 app.listen(Number(process.env.PORT), () => {
   console.log("Captain service is running!");
 });

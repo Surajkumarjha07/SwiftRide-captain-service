@@ -4,7 +4,7 @@ import captainRoutes from "./routes/captainRoutes.js";
 import cookieParser from "cookie-parser";
 import rideRoutes from "./routes/rideRoutes.js";
 import startKafka from "./kafka/index.js";
-import CaptainPayload from "./types/captainPayload.js";
+import findCaptains from "./utils/findCaptains.js";
 
 dotenv.config();
 
@@ -13,7 +13,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
-app.get("/", (req, res) => {
+app.get("/", (req: Request, res: Response) => {
     res.send("Hello! I am captain-service");
 })
 
@@ -22,6 +22,17 @@ startKafka();
 
 app.use("/actions", captainRoutes);
 app.use("/rides", rideRoutes);
+app.post("/loc", async (req, res) => {
+  const { locationCoordinates } = req.body;
+
+  try {
+    const captains = await findCaptains(locationCoordinates, 5);
+    res.json(captains);
+  } catch (error) {
+    console.error("Error finding captains:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 app.listen(Number(process.env.PORT), () => {
     console.log("Captain service is running!");

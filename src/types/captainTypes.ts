@@ -1,9 +1,11 @@
+
 type signUpType = {
     email: string,
     name: string,
     password: string,
     role: string,
-    location: string
+    latitude?: number,
+    longitude?: number
 }
 
 type loginType = {

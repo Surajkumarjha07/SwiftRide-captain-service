@@ -2,7 +2,7 @@ import prisma from "../../prisma/prismaClient.js";
 import bcrypt from "bcryptjs";
 import { signUpType } from "../../types/captainTypes.js";
 
-const signUpCaptain = async ({ email, name, password, role, location }: signUpType) => {
+const signUpCaptain = async ({ email, name, password, role, latitude, longitude }: signUpType) => {
     try {
         const existingCaptain = await prisma.captains.findFirst({ where: { email } })
 
@@ -22,7 +22,7 @@ const signUpCaptain = async ({ email, name, password, role, location }: signUpTy
         const salt = await bcrypt.genSalt(saltRounds);
         const hashedPassword = await bcrypt.hash(password, salt)
 
-        return await prisma.captains.create({ data: { email: email.trim(), name: name.trim(), password: hashedPassword.trim(), role: role.trim(), location: location.trim(), captainId: captainId.trim() } });
+        return await prisma.captains.create({ data: { email: email.trim(), name: name.trim(), password: hashedPassword.trim(), role: role.trim(), latitude: latitude, longitude: longitude, captainId: captainId.trim() } });
 
     } catch (error) {
         if (error instanceof Error) {
