@@ -1,6 +1,6 @@
 import { availability } from "@prisma/client";
-import prisma from "../../prisma/prismaClient.js";
-import redisClient from "../../redis/redisClient.js";
+import prisma from "../../config/database.js";
+import redis from "../../config/redis.js";
 import sendProducerMessage from "../../kafka/producers/producerTemplate.js";
 
 async function rideComplete(captainId: string, rideId: string) {
@@ -12,10 +12,10 @@ async function rideComplete(captainId: string, rideId: string) {
             }
         });
 
-        const rideData = await redisClient.hgetall(`ride:${rideId}`);
+        const rideData = await redis.hgetall(`ride:${rideId}`);
 
         if (captainId && rideData) {
-            await sendProducerMessage("ride-completed", { captainId, rideData });
+            await sendProducerMessage("payment-requested", { captainId, rideData });
         }
     } catch (error) {
         if (error instanceof Error) {

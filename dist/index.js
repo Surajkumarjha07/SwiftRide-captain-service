@@ -5,16 +5,16 @@ import dotenv3 from "dotenv";
 // src/routes/captainRoutes.ts
 import express from "express";
 
-// src/prisma/prismaClient.ts
+// src/config/database.ts
 import { PrismaClient } from "@prisma/client";
 var prisma = new PrismaClient();
-var prismaClient_default = prisma;
+var database_default = prisma;
 
 // src/services/captainServices/deleteCaptainService.ts
 import bcrypt from "bcryptjs";
 var deleteCaptain = async ({ email, password }) => {
   try {
-    const captain = await prismaClient_default.captains.findFirst({ where: { email } });
+    const captain = await database_default.captains.findFirst({ where: { email } });
     let passwordMatched;
     if (captain) {
       passwordMatched = await bcrypt.compare(password, captain.password);
@@ -22,7 +22,7 @@ var deleteCaptain = async ({ email, password }) => {
     if (!captain || !passwordMatched) {
       throw new Error("Incorrect Email or Password!");
     }
-    const deletedCaptain = await prismaClient_default.captains.delete({ where: { email } });
+    const deletedCaptain = await database_default.captains.delete({ where: { email } });
     return deletedCaptain;
   } catch (error) {
     if (error instanceof Error) {
@@ -40,7 +40,7 @@ import dotenv from "dotenv";
 dotenv.config();
 var logInCaptain = async ({ email, password }) => {
   try {
-    const captain = await prismaClient_default.captains.findFirst({ where: { email } });
+    const captain = await database_default.captains.findFirst({ where: { email } });
     let passwordMatched;
     if (captain) {
       passwordMatched = await bcrypt2.compare(password, captain.password);
@@ -63,7 +63,7 @@ var logInCaptainService_default = logInCaptain;
 import bcrypt3 from "bcryptjs";
 var signUpCaptain = async ({ email, name, password, role, latitude, longitude }) => {
   try {
-    const existingCaptain = await prismaClient_default.captains.findFirst({ where: { email } });
+    const existingCaptain = await database_default.captains.findFirst({ where: { email } });
     if (existingCaptain) {
       throw new Error("Email already exists!");
     }
@@ -76,7 +76,7 @@ var signUpCaptain = async ({ email, name, password, role, latitude, longitude })
     const saltRounds = 10;
     const salt = await bcrypt3.genSalt(saltRounds);
     const hashedPassword = await bcrypt3.hash(password, salt);
-    return await prismaClient_default.captains.create({ data: { email: email.trim(), name: name.trim(), password: hashedPassword.trim(), role: role.trim(), latitude, longitude, captainId: captainId.trim() } });
+    return await database_default.captains.create({ data: { email: email.trim(), name: name.trim(), password: hashedPassword.trim(), role: role.trim(), latitude, longitude, captainId: captainId.trim() } });
   } catch (error) {
     if (error instanceof Error) {
       console.log("SignUp service error: ", error.message);
@@ -90,7 +90,7 @@ var signUpCaptainService_default = signUpCaptain;
 import bcrypt4 from "bcryptjs";
 var updateCaptain = async ({ newEmail, newName, newPassword, newRole, oldPassword, email }) => {
   try {
-    const captain = await prismaClient_default.captains.findFirst({
+    const captain = await database_default.captains.findFirst({
       where: { email }
     });
     let passwordMatched;
@@ -103,7 +103,7 @@ var updateCaptain = async ({ newEmail, newName, newPassword, newRole, oldPasswor
     const saltRounds = 10;
     const salt = await bcrypt4.genSalt(saltRounds);
     const hashedPassword = await bcrypt4.hash(newPassword, salt);
-    const updatedCaptain = await prismaClient_default.captains.update({
+    const updatedCaptain = await database_default.captains.update({
       where: { email },
       data: { email: newEmail, name: newName, password: hashedPassword, role: newRole }
     });
@@ -258,10 +258,10 @@ import { Router } from "express";
 // src/services/rideServices/rideAccept.ts
 import { availability } from "@prisma/client";
 
-// src/redis/redisClient.ts
+// src/config/redis.ts
 import { Redis } from "ioredis";
-var redisClient = new Redis();
-var redisClient_default = redisClient;
+var redis = new Redis();
+var redis_default = redis;
 
 // src/kafka/producerInIt.ts
 import { Partitioners } from "kafkajs";
@@ -305,13 +305,13 @@ var producerTemplate_default = sendProducerMessage;
 // src/services/rideServices/rideAccept.ts
 async function rideAccept(captainId, rideId) {
   try {
-    await prismaClient_default.captains.updateMany({
+    await database_default.captains.updateMany({
       where: { captainId, isAvailable: availability.AVAILABLE },
       data: {
         isAvailable: availability.UNAVAILABLE
       }
     });
-    const rideData = await redisClient_default.hgetall(`ride:${rideId}`);
+    const rideData = await redis_default.hgetall(`ride:${rideId}`);
     await producerTemplate_default("ride-accepted", { captainId, rideData });
   } catch (error) {
     if (error instanceof Error) {
@@ -326,15 +326,15 @@ var rideAccept_default = rideAccept;
 import { availability as availability2 } from "@prisma/client";
 async function rideComplete(captainId, rideId) {
   try {
-    await prismaClient_default.captains.updateMany({
+    await database_default.captains.updateMany({
       where: { captainId, isAvailable: availability2.UNAVAILABLE },
       data: {
         isAvailable: availability2.AVAILABLE
       }
     });
-    const rideData = await redisClient_default.hgetall(`ride:${rideId}`);
+    const rideData = await redis_default.hgetall(`ride:${rideId}`);
     if (captainId && rideData) {
-      await producerTemplate_default("ride-completed", { captainId, rideData });
+      await producerTemplate_default("payment-requested", { captainId, rideData });
     }
   } catch (error) {
     if (error instanceof Error) {
@@ -421,8 +421,8 @@ async function acceptRideHandler({ message }) {
   try {
     const { captain, rideData } = JSON.parse(message.value.toString());
     const { rideId } = rideData;
-    await redisClient_default.hmset(`ride:${rideId}`, rideData);
-    await redisClient_default.expire(`ride:${rideId}`, 24 * 3600);
+    await redis_default.hmset(`ride:${rideId}`, rideData);
+    await redis_default.expire(`ride:${rideId}`, 24 * 3600);
   } catch (error) {
     if (error instanceof Error) {
       throw new Error("Error in acceptRideHandler: " + error.message);
@@ -456,7 +456,7 @@ async function findCaptains(locationCoordinates, radius) {
       radiusInMeter
     );
     const [sw, ne] = bounds;
-    const captains = await prismaClient_default.$queryRaw`
+    const captains = await database_default.$queryRaw`
             SELECT * FROM captains
             WHERE
                 latitude BETWEEN ${sw.latitude} AND ${ne.latitude}

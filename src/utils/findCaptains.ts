@@ -1,5 +1,5 @@
 import { availability } from "@prisma/client";
-import prisma from "../prisma/prismaClient.js";
+import prisma from "../config/database.js";
 import { locationType } from "../types/locationTypes.js";
 import { getBoundsOfDistance } from "geolib";
 
