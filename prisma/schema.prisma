@@ -14,15 +14,19 @@ datasource db {
 }
 
 model captains {
-  id          Int          @id @default(autoincrement())
-  captainId   String?      @unique
-  email       String       @unique
-  name        String
-  password    String
-  role        String
-  latitude    Float?       @default(0.00)
-  longitude   Float?       @default(0.00)
-  isAvailable availability @default(AVAILABLE)
+  id               Int             @id @default(autoincrement())
+  captainId        String?         @unique
+  email            String          @unique
+  name             String
+  password         String
+  role             String
+  vehicle_type     vehicles?
+  vehicle_number   String?
+  vehicle_verified vehicleVerified @default(NOT_VERIFIED)
+  latitude         Float           @default(0.00)
+  longitude        Float           @default(0.00)
+  is_available     availability    @default(AVAILABLE)
+  total_earnings   Float           @default(0.00)
 
   @@index([latitude, longitude])
 }
@@ -30,4 +34,15 @@ model captains {
 enum availability {
   AVAILABLE
   UNAVAILABLE
+}
+
+enum vehicles {
+  bike
+  car
+  SUV
+}
+
+enum vehicleVerified {
+  VERIFIED
+  NOT_VERIFIED
 }

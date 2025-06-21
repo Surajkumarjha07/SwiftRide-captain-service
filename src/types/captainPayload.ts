@@ -1,7 +1,7 @@
 type CaptainPayload = {
     captainId: string,
-    name: string,
-    email: string
+    captainName: string,
+    captainEmail: string
 }
 
 export default CaptainPayload;

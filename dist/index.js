@@ -12,17 +12,20 @@ var database_default = prisma;
 
 // src/services/captainServices/deleteCaptainService.ts
 import bcrypt from "bcryptjs";
-var deleteCaptain = async ({ email, password }) => {
+var deleteCaptain = async ({ captainEmail, password }) => {
   try {
-    const captain = await database_default.captains.findFirst({ where: { email } });
+    const captain = await database_default.captains.findFirst({ where: { email: captainEmail } });
+    if (!captain) {
+      throw new Error("Captain doesn't exist!");
+    }
     let passwordMatched;
     if (captain) {
       passwordMatched = await bcrypt.compare(password, captain.password);
     }
-    if (!captain || !passwordMatched) {
-      throw new Error("Incorrect Email or Password!");
+    if (!passwordMatched) {
+      throw new Error("Incorrect Password!");
     }
-    const deletedCaptain = await database_default.captains.delete({ where: { email } });
+    const deletedCaptain = await database_default.captains.delete({ where: { email: captainEmail } });
     return deletedCaptain;
   } catch (error) {
     if (error instanceof Error) {
@@ -48,7 +51,7 @@ var logInCaptain = async ({ email, password }) => {
     if (!captain || !passwordMatched) {
       throw new Error("Incorrect email or password!");
     }
-    const token = jwt.sign({ captainEmail: email, captainId: captain.captainId, captainName: captain.name }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    const token = jwt.sign({ captainEmail: email, captainId: captain.captainId, captainName: captain.name, role: captain.role, vehicleType: captain.vehicle_type, vehicleNo: captain.vehicle_number, isVehicleVerified: captain.vehicle_verified }, process.env.JWT_SECRET, { expiresIn: "1h" });
     return token;
   } catch (error) {
     if (error instanceof Error) {
@@ -88,24 +91,39 @@ var signUpCaptainService_default = signUpCaptain;
 
 // src/services/captainServices/updateCaptainService.ts
 import bcrypt4 from "bcryptjs";
-var updateCaptain = async ({ newEmail, newName, newPassword, newRole, oldPassword, email }) => {
+var updateCaptain = async ({ newEmail, newName, newPassword, newVehicleType, newVehicleNo, oldPassword, captainEmail }) => {
   try {
     const captain = await database_default.captains.findFirst({
-      where: { email }
+      where: { email: captainEmail }
     });
     let passwordMatched;
-    if (captain) {
+    if (captain && oldPassword) {
       passwordMatched = await bcrypt4.compare(oldPassword, captain.password);
     }
     if (!passwordMatched || !captain) {
       throw new Error("Incorrect Email or Password!");
     }
-    const saltRounds = 10;
-    const salt = await bcrypt4.genSalt(saltRounds);
-    const hashedPassword = await bcrypt4.hash(newPassword, salt);
+    let updateData = {};
+    if (newPassword) {
+      const saltRounds = 10;
+      const salt = await bcrypt4.genSalt(saltRounds);
+      updateData.password = await bcrypt4.hash(newPassword, salt);
+    }
+    if (newEmail) {
+      updateData.email = newEmail;
+    }
+    if (newName) {
+      updateData.name = newName;
+    }
+    if (newVehicleType) {
+      updateData.vehicle_type = newVehicleType;
+    }
+    if (newVehicleNo) {
+      updateData.vehicle_number = newVehicleNo;
+    }
     const updatedCaptain = await database_default.captains.update({
-      where: { email },
-      data: { email: newEmail, name: newName, password: hashedPassword, role: newRole }
+      where: { email: captainEmail },
+      data: updateData
     });
     return updatedCaptain;
   } catch (error) {
@@ -123,9 +141,9 @@ var captainService = { signUpCaptain: signUpCaptainService_default, logInCaptain
 // src/controllers/captain/update.ts
 async function handleUpdateCaptainInfo(req, res) {
   try {
-    const { newEmail, newName, newPassword, newRole, oldPassword } = req.body;
-    const { email } = req.captain;
-    const updatedCaptain = await captainService.updateCaptain({ newEmail, newName, newRole, newPassword, oldPassword, email });
+    const { newEmail, newName, newPassword, newVehicleType, newVehicleNo, oldPassword } = req.body;
+    const { captainEmail } = req.captain;
+    const updatedCaptain = await captainService.updateCaptain({ newEmail, newName, newPassword, newVehicleType, newVehicleNo, oldPassword, captainEmail });
     res.status(200).json({
       message: "Captain updated!",
       updatedCaptain
@@ -203,8 +221,8 @@ var signUp_default = handleRegisterCaptain;
 async function handleDeleteCaptain(req, res) {
   try {
     const { password } = req.body;
-    const { email } = req.captain;
-    const deletedCaptain = await captainService.deleteCaptain({ email, password });
+    const { captainEmail } = req.captain;
+    const deletedCaptain = await captainService.deleteCaptain({ captainEmail, password });
     res.status(200).json({
       message: "Captain deleted!",
       deletedCaptain
@@ -306,9 +324,9 @@ var producerTemplate_default = sendProducerMessage;
 async function rideAccept(captainId, rideId) {
   try {
     await database_default.captains.updateMany({
-      where: { captainId, isAvailable: availability.AVAILABLE },
+      where: { captainId, is_available: availability.AVAILABLE },
       data: {
-        isAvailable: availability.UNAVAILABLE
+        is_available: availability.UNAVAILABLE
       }
     });
     const rideData = await redis_default.hgetall(`ride:${rideId}`);
@@ -327,9 +345,9 @@ import { availability as availability2 } from "@prisma/client";
 async function rideComplete(captainId, rideId) {
   try {
     await database_default.captains.updateMany({
-      where: { captainId, isAvailable: availability2.UNAVAILABLE },
+      where: { captainId, is_available: availability2.UNAVAILABLE },
       data: {
-        isAvailable: availability2.AVAILABLE
+        is_available: availability2.AVAILABLE
       }
     });
     const rideData = await redis_default.hgetall(`ride:${rideId}`);
@@ -408,11 +426,13 @@ var rideRoutes_default = router2;
 var getCaptainConsumer = kafkaClient_default.consumer({ groupId: "get-captain-group" });
 var acceptRideConsumer = kafkaClient_default.consumer({ groupId: "accept-ride-group" });
 var rideSavedConsumer = kafkaClient_default.consumer({ groupId: "ride-saved-group" });
+var captain_payment_consumer = kafkaClient_default.consumer({ groupId: "captain-payment" });
 async function consumerInit() {
   await Promise.all([
     getCaptainConsumer.connect(),
     acceptRideConsumer.connect(),
-    rideSavedConsumer.connect()
+    rideSavedConsumer.connect(),
+    captain_payment_consumer.connect()
   ]);
 }
 
@@ -444,6 +464,44 @@ async function acceptRide() {
 }
 var acceptRideConsumer_default = acceptRide;
 
+// src/kafka/handlers/captainPaymentHandler.ts
+async function captainPaymentHandler({ message }) {
+  try {
+    const { fare, payment_id, orderId, order, userId, rideId, captainId } = JSON.parse(message.value.toString());
+    const { captain_commission } = order;
+    await database_default.captains.update({
+      where: {
+        captainId
+      },
+      data: {
+        total_earnings: {
+          increment: captain_commission
+        }
+      }
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error in captain-payment handler: ${error.message}`);
+    }
+  }
+}
+var captainPaymentHandler_default = captainPaymentHandler;
+
+// src/kafka/consumers/captainPaymentConsumer.ts
+async function captainPayment() {
+  try {
+    await captain_payment_consumer.subscribe({ topic: "captain-payment", fromBeginning: true });
+    await captain_payment_consumer.run({
+      eachMessage: captainPaymentHandler_default
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Error in captain-payment consumer: ${error.message}`);
+    }
+  }
+}
+var captainPaymentConsumer_default = captainPayment;
+
 // src/utils/findCaptains.ts
 import { availability as availability3 } from "@prisma/client";
 import { getBoundsOfDistance } from "geolib";
@@ -463,7 +521,7 @@ async function findCaptains(locationCoordinates, radius) {
                 AND
                 longitude BETWEEN ${sw.longitude} AND ${ne.longitude}
                 AND
-                isAvailable=${availability3.AVAILABLE}
+                is_available=${availability3.AVAILABLE}
                 AND
                 ST_distance_sphere(
                     point(${userLatitude}, ${userLongitude}),
@@ -538,6 +596,7 @@ var startKafka = async () => {
     console.log("Producer initializated");
     await getCaptainConsumer_default();
     await acceptRideConsumer_default();
+    await captainPaymentConsumer_default();
   } catch (error) {
     console.log("error in initializing kafka: ", error);
   }

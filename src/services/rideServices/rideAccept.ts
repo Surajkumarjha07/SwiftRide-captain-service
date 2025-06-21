@@ -6,9 +6,9 @@ import sendProducerMessage from "../../kafka/producers/producerTemplate.js";
 async function rideAccept(captainId: string, rideId: string) {
     try {
         await prisma.captains.updateMany({
-            where: { captainId: captainId, isAvailable: availability.AVAILABLE },
+            where: { captainId: captainId, is_available: availability.AVAILABLE },
             data: {
-                isAvailable: availability.UNAVAILABLE
+                is_available: availability.UNAVAILABLE
             }
         })
 

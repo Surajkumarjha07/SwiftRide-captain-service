@@ -22,7 +22,7 @@ async function findCaptains(locationCoordinates: locationType, radius: number): 
                 AND
                 longitude BETWEEN ${sw.longitude} AND ${ne.longitude}
                 AND
-                isAvailable=${availability.AVAILABLE}
+                is_available=${availability.AVAILABLE}
                 AND
                 ST_distance_sphere(
                     point(${userLatitude}, ${userLongitude}),

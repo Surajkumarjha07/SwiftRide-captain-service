@@ -1,5 +1,6 @@
 import { consumerInit } from "./consumerInIt.js";
 import acceptRide from "./consumers/acceptRideConsumer.js";
+import captainPayment from "./consumers/captainPaymentConsumer.js";
 import getCaptainRequest from "./consumers/getCaptainConsumer.js";
 import kafkaInit from "./kafkaAdmin.js";
 import { producerInit } from "./producerInIt.js";
@@ -18,6 +19,8 @@ const startKafka = async () => {
 
         await getCaptainRequest();
         await acceptRide();
+        await captainPayment();
+        
     } catch (error) {
         console.log("error in initializing kafka: ", error);
     }

@@ -1,15 +1,16 @@
 import prisma from "../../config/database.js";
 import bcrypt from "bcryptjs";
 import { updateType } from "../../types/captainTypes.js";
+import { vehicles } from "@prisma/client";
 
-const updateCaptain = async ({ newEmail, newName, newPassword, newRole, oldPassword, email }: updateType) => {
+const updateCaptain = async ({ newEmail, newName, newPassword, newVehicleType, newVehicleNo, oldPassword, captainEmail }: updateType) => {
     try {
         const captain = await prisma.captains.findFirst({
-            where: { email }
+            where: { email: captainEmail }
         });
 
         let passwordMatched;
-        if (captain) {
+        if (captain && oldPassword) {
             passwordMatched = await bcrypt.compare(oldPassword, captain.password);
         }
 
@@ -17,13 +18,33 @@ const updateCaptain = async ({ newEmail, newName, newPassword, newRole, oldPassw
             throw new Error("Incorrect Email or Password!");
         }
 
-        const saltRounds = 10;
-        const salt = await bcrypt.genSalt(saltRounds);
-        const hashedPassword = await bcrypt.hash(newPassword, salt);
+        let updateData: { email?: string, name?: string, password?: string, vehicle_type?: vehicles, vehicle_number?: string } = {};
+
+        if (newPassword) {
+            const saltRounds = 10;
+            const salt = await bcrypt.genSalt(saltRounds);
+            updateData.password = await bcrypt.hash(newPassword, salt);
+        }
+
+        if (newEmail) {
+            updateData.email = newEmail
+        }
+
+        if (newName) {
+            updateData.name = newName
+        }
+
+        if (newVehicleType) {
+            updateData.vehicle_type = newVehicleType as vehicles
+        }
+
+        if (newVehicleNo) {
+            updateData.vehicle_number = newVehicleNo
+        }
 
         const updatedCaptain = await prisma.captains.update({
-            where: { email },
-            data: { email: newEmail, name: newName, password: hashedPassword, role: newRole }
+            where: { email: captainEmail },
+            data: updateData
         })
 
         return updatedCaptain;

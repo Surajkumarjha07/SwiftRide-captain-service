@@ -13,13 +13,19 @@ type loginType = {
     password: string
 }
 
-type updateType = {
-    newEmail: string,
-    newName: string,
-    newPassword: string,
-    newRole: string,
-    oldPassword: string,
-    email: string
+type deleteType = {
+    captainEmail: string,
+    password: string
 }
 
-export type { signUpType, loginType, updateType };
+type updateType = {
+    newEmail?: string,
+    newName?: string,
+    newPassword?: string,
+    newVehicleType?: string,
+    newVehicleNo?: string,
+    oldPassword: string,
+    captainEmail: string
+}
+
+export type { signUpType, loginType, updateType, deleteType };
