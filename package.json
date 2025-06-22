@@ -22,7 +22,8 @@
     "geolib": "^3.3.4",
     "ioredis": "^5.6.1",
     "jsonwebtoken": "^9.0.2",
-    "kafkajs": "^2.2.4"
+    "kafkajs": "^2.2.4",
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
