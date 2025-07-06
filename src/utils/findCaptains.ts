@@ -25,12 +25,13 @@ async function findCaptains(locationCoordinates: locationType, radius: number): 
                 is_available=${availability.AVAILABLE}
                 AND
                 ST_distance_sphere(
-                    point(${userLatitude}, ${userLongitude}),
-                    point(latitude, longitude)
+                    point(${userLongitude}, ${userLatitude}),
+                    point(longitude, latitude)
                 ) <= ${radiusInMeter}
             `
 
         return captains;
+
     } catch (error) {
         if (error instanceof Error) {
             console.log("Find captain service error: ", error.message);

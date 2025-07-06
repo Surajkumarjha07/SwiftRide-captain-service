@@ -242,7 +242,7 @@ import jwt2 from "jsonwebtoken";
 import dotenv2 from "dotenv";
 dotenv2.config();
 async function captainAuthenticate(req, res, next) {
-  let token = req.cookies.authtoken || req.headers["authorization"]?.split("Bearer ")[1];
+  let token = req.cookies.authToken || req.headers["authorization"]?.split("Bearer ")[1];
   if (!token) {
     res.status(404).json({ message: "token not available" });
     return;
@@ -254,10 +254,81 @@ async function captainAuthenticate(req, res, next) {
       next();
     }
   } catch (error) {
-    res.status(403).json({ message: "Forbidden: Invalid or expired token" });
+    return res.status(403).json({ message: "Forbidden: Invalid or expired token" });
   }
 }
 var captainAuth_default = captainAuthenticate;
+
+// src/services/captainServices/registerVehicleService.ts
+import { vehicles, vehicleVerified } from "@prisma/client";
+async function registerVehicleService(captainEmail, vehicle, vehicleNo) {
+  try {
+    const existingVehicle = await database_default.captains.findFirst({
+      where: {
+        vehicle_number: vehicleNo
+      }
+    });
+    if (existingVehicle) {
+      throw new Error("Vehicle already registered!");
+    }
+    const vehicle_registered = await database_default.captains.update({
+      where: {
+        email: captainEmail
+      },
+      data: {
+        vehicle_type: vehicle === "SUV" ? vehicles.SUV : vehicle === "bike" ? vehicles.bike : vehicles.car,
+        vehicle_number: vehicleNo,
+        vehicle_verified: vehicleVerified.VERIFIED
+      }
+    });
+    return vehicle_registered;
+  } catch (error) {
+    throw new Error("Error in verify-vehicle service: " + error.message);
+  }
+}
+var registerVehicleService_default = registerVehicleService;
+
+// src/controllers/captain/registerVehicle.ts
+async function registerVehicle(req, res) {
+  try {
+    const { vehicle, vehicleNo } = req.body;
+    const { captainEmail } = req.captain;
+    const vehicle_registered = await registerVehicleService_default(captainEmail, vehicle, vehicleNo);
+    if (vehicle_registered) {
+      return res.status(200).json({
+        message: "Vehicle registered!",
+        vehicle_registered
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message || "Internal server error!"
+    });
+  }
+}
+var registerVehicle_default = registerVehicle;
+
+// src/controllers/captain/logout.ts
+async function handleLogOut(req, res) {
+  try {
+    return res.clearCookie("authToken", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      path: "/"
+    }).status(200).json({
+      message: "Logout successful!"
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(400).json({
+        message: error.message || "Internal server error!"
+      });
+      return;
+    }
+  }
+}
+var logout_default = handleLogOut;
 
 // src/routes/captainRoutes.ts
 var router = express.Router();
@@ -265,6 +336,8 @@ router.post("/registerCaptain", signUp_default);
 router.post("/loginCaptain", logIn_default);
 router.put("/updateCaptain", captainAuth_default, update_default);
 router.delete("/deleteCaptain", captainAuth_default, delete_default);
+router.post("/verify-vehicle", captainAuth_default, registerVehicle_default);
+router.post("/logout", logout_default);
 var captainRoutes_default = router;
 
 // src/index.ts
@@ -314,6 +387,7 @@ async function sendProducerMessage(topic, data) {
       topic,
       messages: [{ value: JSON.stringify(data) }]
     });
+    console.log(`${topic} sent`);
   } catch (error) {
     console.log(`error in sending ${topic}: ${error}`);
   }
@@ -524,8 +598,8 @@ async function findCaptains(locationCoordinates, radius) {
                 is_available=${availability3.AVAILABLE}
                 AND
                 ST_distance_sphere(
-                    point(${userLatitude}, ${userLongitude}),
-                    point(latitude, longitude)
+                    point(${userLongitude}, ${userLatitude}),
+                    point(longitude, latitude)
                 ) <= ${radiusInMeter}
             `;
     return captains;
@@ -542,13 +616,19 @@ var findCaptains_default = findCaptains;
 async function getCaptainHandler({ message }) {
   const rideData = JSON.parse(message.value.toString());
   const { pickUpLocation_latitude, pickUpLocation_longitude } = rideData;
+  let captains = [];
   if (pickUpLocation_latitude && pickUpLocation_longitude) {
-    const captains = await findCaptains_default({ pickUpLocation_latitude, pickUpLocation_longitude }, 5);
-    if (!captains) {
-      await producerTemplate_default("no-captain-found", { rideData });
-    }
-    await producerTemplate_default("captains-fetched", { captains, rideData });
+    console.log("Finding captains near:", pickUpLocation_latitude, pickUpLocation_longitude);
+    captains = await findCaptains_default({ pickUpLocation_latitude, pickUpLocation_longitude }, 5);
   }
+  console.log("captains found: ", captains);
+  if (captains.length === 0) {
+    await producerTemplate_default("no-captain-found-notify-ride", { rideData });
+    await producerTemplate_default("no-captain-found-notify-gateway", { rideData });
+    await producerTemplate_default("no-captain-found-notify-user", { rideData });
+    return;
+  }
+  await producerTemplate_default("captains-fetched", { captains, rideData });
 }
 var getCaptainHandler_default = getCaptainHandler;
 

@@ -5,8 +5,9 @@ import CaptainPayload from "../types/captainPayload.js";
 
 dotenv.config();
 
-async function captainAuthenticate(req: Request, res: Response, next: NextFunction) {
-    let token = req.cookies.authtoken || req.headers["authorization"]?.split("Bearer ")[1];
+async function captainAuthenticate(req: Request, res: Response, next: NextFunction): Promise<any> {
+    let token = req.cookies.authToken || req.headers["authorization"]?.split("Bearer ")[1];
+
     if (!token) {
         res.status(404).json({ message: "token not available" });
         return;
@@ -19,7 +20,7 @@ async function captainAuthenticate(req: Request, res: Response, next: NextFuncti
             next();
         }
     } catch (error) {
-        res.status(403).json({ message: "Forbidden: Invalid or expired token" });
+        return res.status(403).json({ message: "Forbidden: Invalid or expired token" });
     }
 };
 
