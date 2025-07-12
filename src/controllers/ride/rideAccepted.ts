@@ -7,6 +7,12 @@ async function handleRideAccepted(req: Request, res: Response) {
         const { rideId } = req.body;
         const { captainId } = req.captain as CaptainPayload;
 
+        if (!rideId) {
+            res.status(400).json({
+                message: "rideId not provided"
+            })
+        }
+
         if (!captainId) {
             res.status(400).json({
                 message: "Captain not authorized"

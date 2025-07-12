@@ -1,4 +1,4 @@
-import { availability } from "@prisma/client";
+import { availability, vehicleVerified } from "@prisma/client";
 import prisma from "../config/database.js";
 import { locationType } from "../types/locationTypes.js";
 import { getBoundsOfDistance } from "geolib";
@@ -23,6 +23,8 @@ async function findCaptains(locationCoordinates: locationType, radius: number): 
                 longitude BETWEEN ${sw.longitude} AND ${ne.longitude}
                 AND
                 is_available=${availability.AVAILABLE}
+                AND
+                vehicle_verified=${vehicleVerified.VERIFIED}
                 AND
                 ST_distance_sphere(
                     point(${userLongitude}, ${userLatitude}),

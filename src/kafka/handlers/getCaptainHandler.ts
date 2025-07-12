@@ -1,9 +1,12 @@
 import { EachMessagePayload } from "kafkajs";
 import sendProducerMessage from "../producers/producerTemplate.js";
 import findCaptains from "../../utils/findCaptains.js";
+import redis from "../../config/redis.js";
 
 async function getCaptainHandler({ message }: EachMessagePayload) {
     const rideData = JSON.parse(message.value!.toString());
+    const { rideId } = rideData;
+
     const { pickUpLocation_latitude, pickUpLocation_longitude } = rideData;
     let captains: any[] = [];
 
@@ -22,6 +25,8 @@ async function getCaptainHandler({ message }: EachMessagePayload) {
     }
 
     await sendProducerMessage("captains-fetched", { captains, rideData });
+    await redis.hmset(`ride:${rideId}`, rideData);
+    await redis.expire(`ride:${rideId}`, 24 * 3600);
 }
 
 export default getCaptainHandler;

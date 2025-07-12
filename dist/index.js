@@ -426,7 +426,7 @@ async function rideComplete(captainId, rideId) {
     });
     const rideData = await redis_default.hgetall(`ride:${rideId}`);
     if (captainId && rideData) {
-      await producerTemplate_default("payment-requested", { captainId, rideData });
+      await producerTemplate_default("payment-requested-notify-user", { rideData, captainId });
     }
   } catch (error) {
     if (error instanceof Error) {
@@ -445,6 +445,11 @@ async function handleRideAccepted(req, res) {
   try {
     const { rideId } = req.body;
     const { captainId } = req.captain;
+    if (!rideId) {
+      res.status(400).json({
+        message: "rideId not provided"
+      });
+    }
     if (!captainId) {
       res.status(400).json({
         message: "Captain not authorized"
@@ -501,12 +506,14 @@ var getCaptainConsumer = kafkaClient_default.consumer({ groupId: "get-captain-gr
 var acceptRideConsumer = kafkaClient_default.consumer({ groupId: "accept-ride-group" });
 var rideSavedConsumer = kafkaClient_default.consumer({ groupId: "ride-saved-group" });
 var captain_payment_consumer = kafkaClient_default.consumer({ groupId: "captain-payment" });
+var ride_cancelled_consumer = kafkaClient_default.consumer({ groupId: "ride-cancelled-group" });
 async function consumerInit() {
   await Promise.all([
     getCaptainConsumer.connect(),
     acceptRideConsumer.connect(),
     rideSavedConsumer.connect(),
-    captain_payment_consumer.connect()
+    captain_payment_consumer.connect(),
+    ride_cancelled_consumer.connect()
   ]);
 }
 
@@ -577,7 +584,7 @@ async function captainPayment() {
 var captainPaymentConsumer_default = captainPayment;
 
 // src/utils/findCaptains.ts
-import { availability as availability3 } from "@prisma/client";
+import { availability as availability3, vehicleVerified as vehicleVerified2 } from "@prisma/client";
 import { getBoundsOfDistance } from "geolib";
 async function findCaptains(locationCoordinates, radius) {
   try {
@@ -597,6 +604,8 @@ async function findCaptains(locationCoordinates, radius) {
                 AND
                 is_available=${availability3.AVAILABLE}
                 AND
+                vehicle_verified=${vehicleVerified2.VERIFIED}
+                AND
                 ST_distance_sphere(
                     point(${userLongitude}, ${userLatitude}),
                     point(longitude, latitude)
@@ -615,6 +624,7 @@ var findCaptains_default = findCaptains;
 // src/kafka/handlers/getCaptainHandler.ts
 async function getCaptainHandler({ message }) {
   const rideData = JSON.parse(message.value.toString());
+  const { rideId } = rideData;
   const { pickUpLocation_latitude, pickUpLocation_longitude } = rideData;
   let captains = [];
   if (pickUpLocation_latitude && pickUpLocation_longitude) {
@@ -629,6 +639,8 @@ async function getCaptainHandler({ message }) {
     return;
   }
   await producerTemplate_default("captains-fetched", { captains, rideData });
+  await redis_default.hmset(`ride:${rideId}`, rideData);
+  await redis_default.expire(`ride:${rideId}`, 24 * 3600);
 }
 var getCaptainHandler_default = getCaptainHandler;
 

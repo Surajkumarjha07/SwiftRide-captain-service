@@ -15,7 +15,8 @@ async function rideComplete(captainId: string, rideId: string) {
         const rideData = await redis.hgetall(`ride:${rideId}`);
 
         if (captainId && rideData) {
-            await sendProducerMessage("payment-requested", { captainId, rideData });
+            // await sendProducerMessage("payment-requested", { captainId, rideData });
+            await sendProducerMessage("payment-requested-notify-user", { rideData, captainId });
         }
     } catch (error) {
         if (error instanceof Error) {
