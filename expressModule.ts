@@ -1,4 +1,4 @@
-import CaptainPayload from "./captainPayload.js";
+import CaptainPayload from "./src/types/captainPayload.js";
 
 declare module 'express-serve-static-core' {
     interface Request {

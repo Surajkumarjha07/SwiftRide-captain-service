@@ -3,4 +3,9 @@ type locationType = {
     pickUpLocation_longitude: number
 }
 
-export type { locationType };
+type coords = {
+    latitude: number,
+    longitude: number
+}
+
+export type { locationType, coords };

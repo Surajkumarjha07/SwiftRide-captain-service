@@ -1,19 +1,17 @@
 import kafka from "./kafkaClient.js"
 
 const getCaptainConsumer = kafka.consumer({ groupId: "get-captain-group" });
-const acceptRideConsumer = kafka.consumer({ groupId: "accept-ride-group" });
-const rideSavedConsumer = kafka.consumer({groupId: "ride-saved-group"});
-const captain_payment_consumer = kafka.consumer({groupId: "captain-payment"});
-const ride_cancelled_consumer = kafka.consumer({groupId: "ride-cancelled-group"});
+const update_captain_earnings = kafka.consumer({ groupId: "update-captain-earnings" });
+const ride_cancelled_consumer = kafka.consumer({ groupId: "ride-cancelled-group" });
+const captain_location_update = kafka.consumer({ groupId: "captain-location-update" });
 
 async function consumerInit() {
     await Promise.all([
         getCaptainConsumer.connect(),
-        acceptRideConsumer.connect(),
-        rideSavedConsumer.connect(),
-        captain_payment_consumer.connect(),
-        ride_cancelled_consumer.connect()
+        update_captain_earnings.connect(),
+        ride_cancelled_consumer.connect(),
+        captain_location_update.connect()
     ]);
 }
 
-export { consumerInit, getCaptainConsumer, acceptRideConsumer, rideSavedConsumer, captain_payment_consumer, ride_cancelled_consumer };
+export { consumerInit, getCaptainConsumer, update_captain_earnings, ride_cancelled_consumer, captain_location_update };

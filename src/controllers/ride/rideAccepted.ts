@@ -4,7 +4,7 @@ import CaptainPayload from "../../types/captainPayload.js";
 
 async function handleRideAccepted(req: Request, res: Response) {
     try {
-        const { rideId } = req.body;
+        const { rideId, vehicle, vehicle_number } = req.body;
         const { captainId } = req.captain as CaptainPayload;
 
         if (!rideId) {
@@ -20,7 +20,7 @@ async function handleRideAccepted(req: Request, res: Response) {
             return;
         }
 
-        await rideService.rideAccept(captainId, rideId);
+        await rideService.rideAccept(captainId, rideId, vehicle, vehicle_number);
 
         res.status(200).json({
             message: `Ride accepted by: ${captainId}`

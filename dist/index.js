@@ -395,7 +395,7 @@ async function sendProducerMessage(topic, data) {
 var producerTemplate_default = sendProducerMessage;
 
 // src/services/rideServices/rideAccept.ts
-async function rideAccept(captainId, rideId) {
+async function rideAccept(captainId, rideId, vehicle, vehicle_number) {
   try {
     await database_default.captains.updateMany({
       where: { captainId, is_available: availability.AVAILABLE },
@@ -404,6 +404,11 @@ async function rideAccept(captainId, rideId) {
       }
     });
     const rideData = await redis_default.hgetall(`ride:${rideId}`);
+    rideData.captainId = captainId;
+    rideData.vehicle = vehicle;
+    rideData.vehicle_number = vehicle_number;
+    await redis_default.hset(`rideData:${rideData.userId}`, rideData);
+    await redis_default.hset(`ride:${rideId}`, rideData);
     await producerTemplate_default("ride-accepted", { captainId, rideData });
   } catch (error) {
     if (error instanceof Error) {
@@ -443,7 +448,7 @@ var rideService = { rideAccept: rideAccept_default, rideComplete: rideComplete_d
 // src/controllers/ride/rideAccepted.ts
 async function handleRideAccepted(req, res) {
   try {
-    const { rideId } = req.body;
+    const { rideId, vehicle, vehicle_number } = req.body;
     const { captainId } = req.captain;
     if (!rideId) {
       res.status(400).json({
@@ -456,7 +461,7 @@ async function handleRideAccepted(req, res) {
       });
       return;
     }
-    await rideService.rideAccept(captainId, rideId);
+    await rideService.rideAccept(captainId, rideId, vehicle, vehicle_number);
     res.status(200).json({
       message: `Ride accepted by: ${captainId}`
     });
@@ -503,47 +508,50 @@ var rideRoutes_default = router2;
 
 // src/kafka/consumerInIt.ts
 var getCaptainConsumer = kafkaClient_default.consumer({ groupId: "get-captain-group" });
-var acceptRideConsumer = kafkaClient_default.consumer({ groupId: "accept-ride-group" });
-var rideSavedConsumer = kafkaClient_default.consumer({ groupId: "ride-saved-group" });
-var captain_payment_consumer = kafkaClient_default.consumer({ groupId: "captain-payment" });
+var update_captain_earnings = kafkaClient_default.consumer({ groupId: "update-captain-earnings" });
 var ride_cancelled_consumer = kafkaClient_default.consumer({ groupId: "ride-cancelled-group" });
+var captain_location_update = kafkaClient_default.consumer({ groupId: "captain-location-update" });
 async function consumerInit() {
   await Promise.all([
     getCaptainConsumer.connect(),
-    acceptRideConsumer.connect(),
-    rideSavedConsumer.connect(),
-    captain_payment_consumer.connect(),
-    ride_cancelled_consumer.connect()
+    update_captain_earnings.connect(),
+    ride_cancelled_consumer.connect(),
+    captain_location_update.connect()
   ]);
 }
 
-// src/kafka/handlers/acceptRideHandler.ts
-async function acceptRideHandler({ message }) {
+// src/captainMap.ts
+var captainCoordsMap = /* @__PURE__ */ new Map();
+var captainMap_default = captainCoordsMap;
+
+// src/kafka/handlers/captainLocationUpdateHandler.ts
+async function captainLocationUpdateHandler({ message }) {
   try {
-    const { captain, rideData } = JSON.parse(message.value.toString());
-    const { rideId } = rideData;
-    await redis_default.hmset(`ride:${rideId}`, rideData);
-    await redis_default.expire(`ride:${rideId}`, 24 * 3600);
+    const { coordinates, captainId } = JSON.parse(message.value.toString());
+    const captain_redis_coord = await redis_default.hgetall(`captain-location-updates:${captainId}`);
+    const latitudeChanged = coordinates.latitude !== Number(captain_redis_coord.latitude);
+    const longitudeChanged = coordinates.longitude !== Number(captain_redis_coord.longitude);
+    if (!latitudeChanged && !longitudeChanged) return;
+    await redis_default.hset(`captain-location-updates:${captainId}`, { latitude: String(coordinates.latitude), longitude: String(coordinates.longitude) });
+    captainMap_default.set(captainId, coordinates);
   } catch (error) {
-    if (error instanceof Error) {
-      throw new Error("Error in acceptRideHandler: " + error.message);
-    }
+    throw new Error("Error in Captain-Location-Update handler: " + error.message);
   }
 }
-var acceptRideHandler_default = acceptRideHandler;
+var captainLocationUpdateHandler_default = captainLocationUpdateHandler;
 
-// src/kafka/consumers/acceptRideConsumer.ts
-async function acceptRide() {
+// src/kafka/consumers/captainLocationUpdate.ts
+async function captainLocationUpdate() {
   try {
-    await acceptRideConsumer.subscribe({ topic: "accept-ride", fromBeginning: true });
-    await acceptRideConsumer.run({
-      eachMessage: acceptRideHandler_default
+    await captain_location_update.subscribe({ topic: "captain-location-update", fromBeginning: true });
+    await captain_location_update.run({
+      eachMessage: captainLocationUpdateHandler_default
     });
   } catch (error) {
-    console.log("error in getting accept-ride request: ", error);
+    throw new Error("Error in Captain-Location-Update consumer: " + error.message);
   }
 }
-var acceptRideConsumer_default = acceptRide;
+var captainLocationUpdate_default = captainLocationUpdate;
 
 // src/kafka/handlers/captainPaymentHandler.ts
 async function captainPaymentHandler({ message }) {
@@ -562,7 +570,7 @@ async function captainPaymentHandler({ message }) {
     });
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(`Error in captain-payment handler: ${error.message}`);
+      throw new Error(`Error in update-captain-payment handler: ${error.message}`);
     }
   }
 }
@@ -571,13 +579,13 @@ var captainPaymentHandler_default = captainPaymentHandler;
 // src/kafka/consumers/captainPaymentConsumer.ts
 async function captainPayment() {
   try {
-    await captain_payment_consumer.subscribe({ topic: "captain-payment", fromBeginning: true });
-    await captain_payment_consumer.run({
+    await update_captain_earnings.subscribe({ topic: "update-captain-earnings", fromBeginning: true });
+    await update_captain_earnings.run({
       eachMessage: captainPaymentHandler_default
     });
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(`Error in captain-payment consumer: ${error.message}`);
+      throw new Error(`Error in update-captain-earnings consumer: ${error.message}`);
     }
   }
 }
@@ -586,7 +594,7 @@ var captainPaymentConsumer_default = captainPayment;
 // src/utils/findCaptains.ts
 import { availability as availability3, vehicleVerified as vehicleVerified2 } from "@prisma/client";
 import { getBoundsOfDistance } from "geolib";
-async function findCaptains(locationCoordinates, radius) {
+async function findCaptains(locationCoordinates, vehicle, radius) {
   try {
     const { pickUpLocation_latitude: userLatitude, pickUpLocation_longitude: userLongitude } = locationCoordinates;
     const radiusInMeter = radius * 1e3;
@@ -601,6 +609,8 @@ async function findCaptains(locationCoordinates, radius) {
                 latitude BETWEEN ${sw.latitude} AND ${ne.latitude}
                 AND
                 longitude BETWEEN ${sw.longitude} AND ${ne.longitude}
+                AND
+                vehicle_type=${vehicle}
                 AND
                 is_available=${availability3.AVAILABLE}
                 AND
@@ -624,12 +634,12 @@ var findCaptains_default = findCaptains;
 // src/kafka/handlers/getCaptainHandler.ts
 async function getCaptainHandler({ message }) {
   const rideData = JSON.parse(message.value.toString());
-  const { rideId } = rideData;
+  const { rideId, vehicle } = rideData;
   const { pickUpLocation_latitude, pickUpLocation_longitude } = rideData;
   let captains = [];
   if (pickUpLocation_latitude && pickUpLocation_longitude) {
     console.log("Finding captains near:", pickUpLocation_latitude, pickUpLocation_longitude);
-    captains = await findCaptains_default({ pickUpLocation_latitude, pickUpLocation_longitude }, 5);
+    captains = await findCaptains_default({ pickUpLocation_latitude, pickUpLocation_longitude }, vehicle, 5);
   }
   console.log("captains found: ", captains);
   if (captains.length === 0) {
@@ -639,7 +649,7 @@ async function getCaptainHandler({ message }) {
     return;
   }
   await producerTemplate_default("captains-fetched", { captains, rideData });
-  await redis_default.hmset(`ride:${rideId}`, rideData);
+  await redis_default.hset(`ride:${rideId}`, rideData);
   await redis_default.expire(`ride:${rideId}`, 24 * 3600);
 }
 var getCaptainHandler_default = getCaptainHandler;
@@ -687,13 +697,55 @@ var startKafka = async () => {
     await producerInit();
     console.log("Producer initializated");
     await getCaptainConsumer_default();
-    await acceptRideConsumer_default();
     await captainPaymentConsumer_default();
+    await captainLocationUpdate_default();
   } catch (error) {
     console.log("error in initializing kafka: ", error);
   }
 };
 var kafka_default = startKafka;
+
+// src/utils/bulkUpdate.ts
+import _ from "lodash";
+
+// src/utils/bulkInsertDB.ts
+async function bulkInsertDB(chunks) {
+  for (const chunk of chunks) {
+    const ids = chunk.map(([captainId, coordinates]) => `'${captainId}'`).join(", ");
+    const latitudeCases = chunk.map(([captainId, coordinates]) => `WHEN '${captainId}' THEN ${coordinates.latitude}`).join(" ");
+    const longitudeCases = chunk.map(([captainId, coordinates]) => `WHEN '${captainId}' THEN ${coordinates.longitude}`).join(" ");
+    const query = `
+                UPDATE captains
+                SET 
+                latitude = CASE captainId ${latitudeCases} END,
+                longitude = CASE captainId ${longitudeCases} END
+                WHERE captainId IN (${ids})
+            `;
+    await database_default.$executeRawUnsafe(query);
+  }
+}
+var bulkInsertDB_default = bulkInsertDB;
+
+// src/utils/bulkUpdate.ts
+async function bulkUpdateLocation() {
+  try {
+    let buffer;
+    setInterval(async () => {
+      buffer = Array.from(captainMap_default.entries());
+      if (buffer.length === 0) return;
+      const chunks = _.chunk(buffer, 10);
+      try {
+        await bulkInsertDB_default(chunks);
+        captainMap_default.clear();
+      } catch (error) {
+        throw new Error("Error in bulk inserting in DB: " + error.message);
+      }
+    }, 60 * 1e3);
+  } catch (error) {
+    throw new Error("Error in bulk updating database: " + error.message);
+  }
+}
+var bulkUpdate_default = bulkUpdateLocation;
 
 // src/index.ts
 dotenv3.config();
@@ -705,18 +757,9 @@ app.get("/", (req, res) => {
   res.send("Hello! I am captain-service");
 });
 kafka_default();
+bulkUpdate_default();
 app.use("/actions", captainRoutes_default);
 app.use("/rides", rideRoutes_default);
-app.post("/loc", async (req, res) => {
-  const { locationCoordinates } = req.body;
-  try {
-    const captains = await findCaptains_default(locationCoordinates, 5);
-    res.json(captains);
-  } catch (error) {
-    console.error("Error finding captains:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
 app.listen(Number(process.env.PORT), () => {
   console.log("Captain service is running!");
 });

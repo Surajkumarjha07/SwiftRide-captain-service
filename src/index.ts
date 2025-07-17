@@ -4,7 +4,7 @@ import captainRoutes from "./routes/captainRoutes.js";
 import cookieParser from "cookie-parser";
 import rideRoutes from "./routes/rideRoutes.js";
 import startKafka from "./kafka/index.js";
-import findCaptains from "./utils/findCaptains.js";
+import bulkUpdateLocation from "./utils/bulkUpdate.js";
 
 dotenv.config();
 
@@ -19,20 +19,21 @@ app.get("/", (req: Request, res: Response) => {
 
 // start kafka
 startKafka();
+bulkUpdateLocation();
 
 app.use("/actions", captainRoutes);
 app.use("/rides", rideRoutes);
-app.post("/loc", async (req, res) => {
-  const { locationCoordinates } = req.body;
+// app.post("/loc", async (req, res) => {
+//   const { locationCoordinates } = req.body;
 
-  try {
-    const captains = await findCaptains(locationCoordinates, 5);
-    res.json(captains);
-  } catch (error) {
-    console.error("Error finding captains:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
+//   try {
+//     const captains = await findCaptains(locationCoordinates, 5);
+//     res.json(captains);
+//   } catch (error) {
+//     console.error("Error finding captains:", error);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
 
 app.listen(Number(process.env.PORT), () => {
     console.log("Captain service is running!");

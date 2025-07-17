@@ -5,14 +5,14 @@ import redis from "../../config/redis.js";
 
 async function getCaptainHandler({ message }: EachMessagePayload) {
     const rideData = JSON.parse(message.value!.toString());
-    const { rideId } = rideData;
+    const { rideId, vehicle } = rideData;
 
     const { pickUpLocation_latitude, pickUpLocation_longitude } = rideData;
     let captains: any[] = [];
 
     if (pickUpLocation_latitude && pickUpLocation_longitude) {
         console.log("Finding captains near:", pickUpLocation_latitude, pickUpLocation_longitude);
-        captains = await findCaptains({ pickUpLocation_latitude, pickUpLocation_longitude }, 5);
+        captains = await findCaptains({ pickUpLocation_latitude, pickUpLocation_longitude }, vehicle, 5);
     }
 
     console.log("captains found: ", captains);
@@ -25,7 +25,7 @@ async function getCaptainHandler({ message }: EachMessagePayload) {
     }
 
     await sendProducerMessage("captains-fetched", { captains, rideData });
-    await redis.hmset(`ride:${rideId}`, rideData);
+    await redis.hset(`ride:${rideId}`, rideData);
     await redis.expire(`ride:${rideId}`, 24 * 3600);
 }
 

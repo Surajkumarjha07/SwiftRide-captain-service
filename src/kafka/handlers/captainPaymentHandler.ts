@@ -20,7 +20,7 @@ async function captainPaymentHandler({ message }: EachMessagePayload) {
 
     } catch (error) {
         if (error instanceof Error) {
-            throw new Error(`Error in captain-payment handler: ${error.message}`);
+            throw new Error(`Error in update-captain-payment handler: ${error.message}`);
         }
     }
 }

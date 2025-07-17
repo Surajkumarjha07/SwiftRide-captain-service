@@ -3,7 +3,7 @@ import prisma from "../config/database.js";
 import { locationType } from "../types/locationTypes.js";
 import { getBoundsOfDistance } from "geolib";
 
-async function findCaptains(locationCoordinates: locationType, radius: number): Promise<any> {
+async function findCaptains(locationCoordinates: locationType, vehicle: string, radius: number): Promise<any> {
     try {
         const { pickUpLocation_latitude: userLatitude, pickUpLocation_longitude: userLongitude } = locationCoordinates
         const radiusInMeter = radius * 1000;
@@ -21,6 +21,8 @@ async function findCaptains(locationCoordinates: locationType, radius: number): 
                 latitude BETWEEN ${sw.latitude} AND ${ne.latitude}
                 AND
                 longitude BETWEEN ${sw.longitude} AND ${ne.longitude}
+                AND
+                vehicle_type=${vehicle}
                 AND
                 is_available=${availability.AVAILABLE}
                 AND
