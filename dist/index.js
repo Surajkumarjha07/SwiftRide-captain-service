@@ -454,10 +454,19 @@ async function handleRideAccepted(req, res) {
       res.status(400).json({
         message: "rideId not provided"
       });
+      return;
     }
     if (!captainId) {
       res.status(400).json({
         message: "Captain not authorized"
+      });
+      return;
+    }
+    const rideData = await redis_default.hgetall(`ride:${rideId}`);
+    console.log("rd: ", rideData);
+    if (Object.keys(rideData).length === 0) {
+      res.status(410).json({
+        message: "ride expired!"
       });
       return;
     }
@@ -509,7 +518,7 @@ var rideRoutes_default = router2;
 // src/kafka/consumerInIt.ts
 var getCaptainConsumer = kafkaClient_default.consumer({ groupId: "get-captain-group" });
 var update_captain_earnings = kafkaClient_default.consumer({ groupId: "update-captain-earnings" });
-var ride_cancelled_consumer = kafkaClient_default.consumer({ groupId: "ride-cancelled-group" });
+var ride_cancelled_consumer = kafkaClient_default.consumer({ groupId: "ride-cancelled-group-captain" });
 var captain_location_update = kafkaClient_default.consumer({ groupId: "captain-location-update" });
 async function consumerInit() {
   await Promise.all([
@@ -533,6 +542,7 @@ async function captainLocationUpdateHandler({ message }) {
     const longitudeChanged = coordinates.longitude !== Number(captain_redis_coord.longitude);
     if (!latitudeChanged && !longitudeChanged) return;
     await redis_default.hset(`captain-location-updates:${captainId}`, { latitude: String(coordinates.latitude), longitude: String(coordinates.longitude) });
+    await redis_default.expire(`captain-location-updates:${captainId}`, 3600);
     captainMap_default.set(captainId, coordinates);
   } catch (error) {
     throw new Error("Error in Captain-Location-Update handler: " + error.message);
@@ -667,6 +677,40 @@ async function getCaptainRequest() {
 }
 var getCaptainConsumer_default = getCaptainRequest;
 
+// src/kafka/handlers/rideCancelledHandler.ts
+import { availability as availability4 } from "@prisma/client";
+async function rideCancelledHandler({ message }) {
+  try {
+    const { rideData } = JSON.parse(message.value.toString());
+    const { captainId } = rideData;
+    await database_default.captains.update({
+      where: {
+        captainId
+      },
+      data: {
+        is_available: availability4.AVAILABLE
+      }
+    });
+    await producerTemplate_default("ride-cancelled-notify-captain", { rideData });
+  } catch (error) {
+    throw new Error("Error in getting ride-cancelled handler(captain): " + error.message);
+  }
+}
+var rideCancelledHandler_default = rideCancelledHandler;
+
+// src/kafka/consumers/rideCancelledConsumer.ts
+async function rideCancelled() {
+  try {
+    await ride_cancelled_consumer.subscribe({ topic: "ride-cancelled" });
+    await ride_cancelled_consumer.run({
+      eachMessage: rideCancelledHandler_default
+    });
+  } catch (error) {
+    throw new Error("Error in getting ride-cancelled consumer(captain): " + error.message);
+  }
+}
+var rideCancelledConsumer_default = rideCancelled;
+
 // src/kafka/kafkaAdmin.ts
 async function kafkaInit() {
   const admin = kafkaClient_default.admin();
@@ -699,6 +743,7 @@ var startKafka = async () => {
     await getCaptainConsumer_default();
     await captainPaymentConsumer_default();
     await captainLocationUpdate_default();
+    await rideCancelledConsumer_default();
   } catch (error) {
     console.log("error in initializing kafka: ", error);
   }

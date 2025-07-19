@@ -2,7 +2,7 @@ import kafka from "./kafkaClient.js"
 
 const getCaptainConsumer = kafka.consumer({ groupId: "get-captain-group" });
 const update_captain_earnings = kafka.consumer({ groupId: "update-captain-earnings" });
-const ride_cancelled_consumer = kafka.consumer({ groupId: "ride-cancelled-group" });
+const ride_cancelled_consumer = kafka.consumer({ groupId: "ride-cancelled-group-captain" });
 const captain_location_update = kafka.consumer({ groupId: "captain-location-update" });
 
 async function consumerInit() {

@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { rideService } from "../../services/rideServices/index.js";
 import CaptainPayload from "../../types/captainPayload.js";
+import redis from "../../config/redis.js";
 
 async function handleRideAccepted(req: Request, res: Response) {
     try {
@@ -10,12 +11,25 @@ async function handleRideAccepted(req: Request, res: Response) {
         if (!rideId) {
             res.status(400).json({
                 message: "rideId not provided"
-            })
+            });
+            return;
         }
 
         if (!captainId) {
             res.status(400).json({
                 message: "Captain not authorized"
+            });
+            return;
+        }
+
+        const rideData = await redis.hgetall(`ride:${rideId}`);
+
+        console.log("rd: ", rideData);
+        
+
+        if (Object.keys(rideData).length === 0) {
+            res.status(410).json({
+                message: "ride expired!"
             });
             return;
         }

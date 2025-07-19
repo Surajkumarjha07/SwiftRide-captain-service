@@ -15,6 +15,7 @@ async function captainLocationUpdateHandler({ message }: EachMessagePayload) {
         if (!latitudeChanged && !longitudeChanged) return;
 
         await redis.hset(`captain-location-updates:${captainId}`, { latitude: String(coordinates.latitude), longitude: String(coordinates.longitude) });
+        await redis.expire(`captain-location-updates:${captainId}`, 3600);
         captainCoordsMap.set(captainId, coordinates);
 
     } catch (error) {
