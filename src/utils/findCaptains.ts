@@ -16,7 +16,12 @@ async function findCaptains(locationCoordinates: locationType, vehicle: string, 
         const [sw, ne] = bounds;
 
         const captains = await prisma.$queryRaw`
-            SELECT * FROM captains
+            SELECT *,
+            ST_Distance(
+                    ST_MakePoint(longitude, latitude)::geography,
+                    ST_MakePoint(${userLongitude}, ${userLatitude})::geography,
+                ) AS distance
+            FROM captains
             WHERE
                 latitude BETWEEN ${sw.latitude} AND ${ne.latitude}
                 AND
@@ -28,10 +33,13 @@ async function findCaptains(locationCoordinates: locationType, vehicle: string, 
                 AND
                 vehicle_verified=${vehicleVerified.VERIFIED}
                 AND
-                ST_distance_sphere(
-                    point(${userLongitude}, ${userLatitude}),
-                    point(longitude, latitude)
-                ) <= ${radiusInMeter}
+                ST_DWithin(
+                    ST_MakePoint(longitude, latitude)::geography,
+                    ST_MakePoint(${userLongitude}, ${userLatitude})::geography,
+                    ${radiusInMeter}
+                )
+                ORDER BY distance ASC
+                LIMIT 10
             `
 
         return captains;

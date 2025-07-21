@@ -351,7 +351,7 @@ import { availability } from "@prisma/client";
 
 // src/config/redis.ts
 import { Redis } from "ioredis";
-var redis = new Redis();
+var redis = new Redis("rediss://default:AeqBAAIjcDFmZTk5ZmUyNmQyZGQ0ZGQwOWE2ZmZlNzg4NzZiN2RkYXAxMA@proven-hare-60033.upstash.io:6379");
 var redis_default = redis;
 
 // src/kafka/producerInIt.ts
@@ -614,7 +614,12 @@ async function findCaptains(locationCoordinates, vehicle, radius) {
     );
     const [sw, ne] = bounds;
     const captains = await database_default.$queryRaw`
-            SELECT * FROM captains
+            SELECT *,
+            ST_Distance(
+                    ST_MakePoint(longitude, latitude)::geography,
+                    ST_MakePoint(${userLongitude}, ${userLatitude})::geography,
+                ) AS distance
+            FROM captains
             WHERE
                 latitude BETWEEN ${sw.latitude} AND ${ne.latitude}
                 AND
@@ -626,10 +631,13 @@ async function findCaptains(locationCoordinates, vehicle, radius) {
                 AND
                 vehicle_verified=${vehicleVerified2.VERIFIED}
                 AND
-                ST_distance_sphere(
-                    point(${userLongitude}, ${userLatitude}),
-                    point(longitude, latitude)
-                ) <= ${radiusInMeter}
+                ST_DWithin(
+                    ST_MakePoint(longitude, latitude)::geography,
+                    ST_MakePoint(${userLongitude}, ${userLatitude})::geography,
+                    ${radiusInMeter}
+                )
+                ORDER BY distance ASC
+                LIMIT 10
             `;
     return captains;
   } catch (error) {
