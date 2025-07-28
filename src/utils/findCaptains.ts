@@ -1,6 +1,6 @@
 import { availability, vehicleVerified } from "@prisma/client";
 import prisma from "../config/database.js";
-import { locationType } from "../types/locationTypes.js";
+import { locationType } from "../types/location.type.js";
 import { getBoundsOfDistance } from "geolib";
 
 async function findCaptains(locationCoordinates: locationType, vehicle: string, radius: number): Promise<any> {
@@ -16,7 +16,12 @@ async function findCaptains(locationCoordinates: locationType, vehicle: string, 
         const [sw, ne] = bounds;
 
         const captains = await prisma.$queryRaw`
-            SELECT * FROM captains
+            SELECT *,
+            ST_distance_sphere(
+                    point(${userLongitude}, ${userLatitude}),
+                    point(longitude, latitude)
+            ) AS Distance
+            FROM captains
             WHERE
                 latitude BETWEEN ${sw.latitude} AND ${ne.latitude}
                 AND
@@ -32,6 +37,7 @@ async function findCaptains(locationCoordinates: locationType, vehicle: string, 
                     point(${userLongitude}, ${userLatitude}),
                     point(longitude, latitude)
                 ) <= ${radiusInMeter}
+                ORDER BY Distance ASC
             `
 
         return captains;

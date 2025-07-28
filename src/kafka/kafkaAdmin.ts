@@ -6,7 +6,7 @@ async function kafkaInit() {
     await admin.connect();
     console.log("Admin connected...");
 
-    const topics = ["ride-accepted"];
+    const topics = ["ride-cancelled", "captain-location-update", "update-captain-earnings", "get-captains"];
     const existingTopics = await admin.listTopics();
 
     const topicsToCreate = topics.filter(t => !existingTopics.includes(t));

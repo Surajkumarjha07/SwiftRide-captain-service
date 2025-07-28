@@ -1,4 +1,4 @@
-import captainCoordsMap from "../captainMap.js";
+import captainCoordsMap from "../captainCoordsMap.js";
 import _ from "lodash";
 import bulkInsertDB from "./bulkInsertDB.js";
 

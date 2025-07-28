@@ -1,9 +1,9 @@
 import express, { Request, Response } from "express";
 import dotenv from "dotenv";
-import captainRoutes from "./routes/captainRoutes.js";
+import captainRoutes from "./routes/actions.routes.js";
 import cookieParser from "cookie-parser";
-import rideRoutes from "./routes/rideRoutes.js";
-import startKafka from "./kafka/index.js";
+import rideRoutes from "./routes/rides.routes.js";
+import startKafka from "./kafka/index.kafka.js";
 import bulkUpdateLocation from "./utils/bulkUpdate.js";
 
 dotenv.config();
@@ -19,21 +19,12 @@ app.get("/", (req: Request, res: Response) => {
 
 // start kafka
 startKafka();
+
+// timely updates the location in the database
 bulkUpdateLocation();
 
 app.use("/actions", captainRoutes);
 app.use("/rides", rideRoutes);
-// app.post("/loc", async (req, res) => {
-//   const { locationCoordinates } = req.body;
-
-//   try {
-//     const captains = await findCaptains(locationCoordinates, 5);
-//     res.json(captains);
-//   } catch (error) {
-//     console.error("Error finding captains:", error);
-//     res.status(500).json({ error: "Internal server error" });
-//   }
-// });
 
 app.listen(Number(process.env.PORT), () => {
     console.log("Captain service is running!");
