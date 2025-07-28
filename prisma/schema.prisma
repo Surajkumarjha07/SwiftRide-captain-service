@@ -21,7 +21,7 @@ model captains {
   password         String
   role             String
   vehicle_type     vehicles?
-  vehicle_number   String?
+  vehicle_number   String?         @unique
   vehicle_verified vehicleVerified @default(NOT_VERIFIED)
   latitude         Float           @default(0.00)
   longitude        Float           @default(0.00)

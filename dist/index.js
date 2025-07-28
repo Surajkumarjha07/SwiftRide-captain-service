@@ -2,7 +2,7 @@
 import express2 from "express";
 import dotenv3 from "dotenv";
 
-// src/routes/captainRoutes.ts
+// src/routes/actions.routes.ts
 import express from "express";
 
 // src/config/database.ts
@@ -10,7 +10,7 @@ import { PrismaClient } from "@prisma/client";
 var prisma = new PrismaClient();
 var database_default = prisma;
 
-// src/services/captainServices/deleteCaptainService.ts
+// src/services/actions.services/deleteCaptain.service.ts
 import bcrypt from "bcryptjs";
 var deleteCaptain = async ({ captainEmail, password }) => {
   try {
@@ -34,9 +34,9 @@ var deleteCaptain = async ({ captainEmail, password }) => {
     }
   }
 };
-var deleteCaptainService_default = deleteCaptain;
+var deleteCaptain_service_default = deleteCaptain;
 
-// src/services/captainServices/logInCaptainService.ts
+// src/services/actions.services/logInCaptain.service.ts
 import bcrypt2 from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
@@ -51,7 +51,19 @@ var logInCaptain = async ({ email, password }) => {
     if (!captain || !passwordMatched) {
       throw new Error("Incorrect email or password!");
     }
-    const token = jwt.sign({ captainEmail: email, captainId: captain.captainId, captainName: captain.name, role: captain.role, vehicleType: captain.vehicle_type, vehicleNo: captain.vehicle_number, isVehicleVerified: captain.vehicle_verified }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    const token = jwt.sign(
+      {
+        captainId: captain.captainId,
+        captainEmail: email,
+        captainName: captain.name,
+        role: captain.role,
+        vehicleType: captain.vehicle_type,
+        vehicleNo: captain.vehicle_number,
+        isVehicleVerified: captain.vehicle_verified
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
     return token;
   } catch (error) {
     if (error instanceof Error) {
@@ -60,9 +72,9 @@ var logInCaptain = async ({ email, password }) => {
     }
   }
 };
-var logInCaptainService_default = logInCaptain;
+var logInCaptain_service_default = logInCaptain;
 
-// src/services/captainServices/signUpCaptainService.ts
+// src/services/actions.services/signUpCaptain.service.ts
 import bcrypt3 from "bcryptjs";
 var signUpCaptain = async ({ email, name, password, role, latitude, longitude }) => {
   try {
@@ -87,9 +99,9 @@ var signUpCaptain = async ({ email, name, password, role, latitude, longitude })
     }
   }
 };
-var signUpCaptainService_default = signUpCaptain;
+var signUpCaptain_service_default = signUpCaptain;
 
-// src/services/captainServices/updateCaptainService.ts
+// src/services/actions.services/updateCaptain.service.ts
 import bcrypt4 from "bcryptjs";
 var updateCaptain = async ({ newEmail, newName, newPassword, newVehicleType, newVehicleNo, oldPassword, captainEmail }) => {
   try {
@@ -133,12 +145,12 @@ var updateCaptain = async ({ newEmail, newName, newPassword, newVehicleType, new
     }
   }
 };
-var updateCaptainService_default = updateCaptain;
+var updateCaptain_service_default = updateCaptain;
 
-// src/services/captainServices/index.ts
-var captainService = { signUpCaptain: signUpCaptainService_default, logInCaptain: logInCaptainService_default, updateCaptain: updateCaptainService_default, deleteCaptain: deleteCaptainService_default };
+// src/services/actions.services/index.service.ts
+var captainService = { signUpCaptain: signUpCaptain_service_default, logInCaptain: logInCaptain_service_default, updateCaptain: updateCaptain_service_default, deleteCaptain: deleteCaptain_service_default };
 
-// src/controllers/captain/update.ts
+// src/controllers/actions.controllers/update.controller.ts
 async function handleUpdateCaptainInfo(req, res) {
   try {
     const { newEmail, newName, newPassword, newVehicleType, newVehicleNo, oldPassword } = req.body;
@@ -157,9 +169,9 @@ async function handleUpdateCaptainInfo(req, res) {
     }
   }
 }
-var update_default = handleUpdateCaptainInfo;
+var update_controller_default = handleUpdateCaptainInfo;
 
-// src/controllers/captain/logIn.ts
+// src/controllers/actions.controllers/logIn.controller.ts
 async function handleCaptainLogIn(req, res) {
   try {
     const { email, password } = req.body;
@@ -170,13 +182,15 @@ async function handleCaptainLogIn(req, res) {
       return;
     }
     const token = await captainService.logInCaptain({ email, password });
-    res.cookie("authToken", token, {
-      httpOnly: true,
-      sameSite: "none",
-      secure: true,
-      maxAge: 60 * 60 * 1e3,
-      path: "/"
-    });
+    if (token) {
+      res.cookie("authToken", token, {
+        httpOnly: true,
+        sameSite: "none",
+        secure: true,
+        maxAge: 60 * 60 * 1e3,
+        path: "/"
+      });
+    }
     res.status(200).json({
       message: "User Logged In!",
       token
@@ -189,9 +203,9 @@ async function handleCaptainLogIn(req, res) {
     }
   }
 }
-var logIn_default = handleCaptainLogIn;
+var logIn_controller_default = handleCaptainLogIn;
 
-// src/controllers/captain/signUp.ts
+// src/controllers/actions.controllers/signUp.controller.ts
 async function handleRegisterCaptain(req, res) {
   try {
     const { email, name, password, role, latitude, longitude } = req.body;
@@ -202,7 +216,7 @@ async function handleRegisterCaptain(req, res) {
       return;
     }
     const captain = await captainService.signUpCaptain({ email, name, password, role, latitude, longitude });
-    res.status(200).json({
+    res.status(201).json({
       message: "Captain created!",
       captain
     });
@@ -215,13 +229,19 @@ async function handleRegisterCaptain(req, res) {
     }
   }
 }
-var signUp_default = handleRegisterCaptain;
+var signUp_controller_default = handleRegisterCaptain;
 
-// src/controllers/captain/delete.ts
+// src/controllers/actions.controllers/delete.controller.ts
 async function handleDeleteCaptain(req, res) {
   try {
     const { password } = req.body;
     const { captainEmail } = req.captain;
+    if (!captainEmail || !password) {
+      res.status(400).json({
+        message: "Enter all credentials!"
+      });
+      return;
+    }
     const deletedCaptain = await captainService.deleteCaptain({ captainEmail, password });
     res.status(200).json({
       message: "Captain deleted!",
@@ -229,20 +249,20 @@ async function handleDeleteCaptain(req, res) {
     });
   } catch (error) {
     if (error instanceof Error) {
-      res.status(400).json({
+      res.status(500).json({
         message: error.message || "Internal server error!"
       });
     }
   }
 }
-var delete_default = handleDeleteCaptain;
+var delete_controller_default = handleDeleteCaptain;
 
-// src/middlewares/captainAuth.ts
+// src/middlewares/captainAuth.middleware.ts
 import jwt2 from "jsonwebtoken";
 import dotenv2 from "dotenv";
 dotenv2.config();
 async function captainAuthenticate(req, res, next) {
-  let token = req.cookies.authtoken || req.headers["authorization"]?.split("Bearer ")[1];
+  let token = req.cookies.authToken || req.headers["authorization"]?.split("Bearer ")[1];
   if (!token) {
     res.status(404).json({ message: "token not available" });
     return;
@@ -254,26 +274,99 @@ async function captainAuthenticate(req, res, next) {
       next();
     }
   } catch (error) {
-    res.status(403).json({ message: "Forbidden: Invalid or expired token" });
+    return res.status(403).json({ message: "Forbidden: Invalid or expired token" });
   }
 }
-var captainAuth_default = captainAuthenticate;
+var captainAuth_middleware_default = captainAuthenticate;
 
-// src/routes/captainRoutes.ts
+// src/services/actions.services/registerVehicle.service.ts
+import { vehicles, vehicleVerified } from "@prisma/client";
+async function registerVehicleService(captainEmail, vehicle, vehicleNo) {
+  try {
+    const existingVehicle = await database_default.captains.findFirst({
+      where: {
+        vehicle_number: vehicleNo
+      }
+    });
+    if (existingVehicle) {
+      throw new Error("Vehicle already registered!");
+    }
+    const vehicle_registered = await database_default.captains.update({
+      where: {
+        email: captainEmail
+      },
+      data: {
+        vehicle_type: vehicle === "SUV" ? vehicles.SUV : vehicle === "bike" ? vehicles.bike : vehicles.car,
+        vehicle_number: vehicleNo,
+        vehicle_verified: vehicleVerified.VERIFIED
+      }
+    });
+    return vehicle_registered;
+  } catch (error) {
+    throw new Error("Error in verify-vehicle service: " + error.message);
+  }
+}
+var registerVehicle_service_default = registerVehicleService;
+
+// src/controllers/actions.controllers/registerVehicle.controller.ts
+async function registerVehicle(req, res) {
+  try {
+    const { vehicle, vehicleNo } = req.body;
+    const { captainEmail } = req.captain;
+    const vehicle_registered = await registerVehicle_service_default(captainEmail, vehicle, vehicleNo);
+    if (vehicle_registered) {
+      return res.status(200).json({
+        message: "Vehicle registered!",
+        vehicle_registered
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({
+      message: error.message || "Internal server error!"
+    });
+  }
+}
+var registerVehicle_controller_default = registerVehicle;
+
+// src/controllers/actions.controllers/logout.controller.ts
+async function handleLogOut(req, res) {
+  try {
+    return res.clearCookie("authToken", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      path: "/"
+    }).status(200).json({
+      message: "Logout successful!"
+    });
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(400).json({
+        message: error.message || "Internal server error!"
+      });
+      return;
+    }
+  }
+}
+var logout_controller_default = handleLogOut;
+
+// src/routes/actions.routes.ts
 var router = express.Router();
-router.post("/registerCaptain", signUp_default);
-router.post("/loginCaptain", logIn_default);
-router.put("/updateCaptain", captainAuth_default, update_default);
-router.delete("/deleteCaptain", captainAuth_default, delete_default);
-var captainRoutes_default = router;
+router.post("/registerCaptain", signUp_controller_default);
+router.post("/loginCaptain", logIn_controller_default);
+router.put("/updateCaptain", captainAuth_middleware_default, update_controller_default);
+router.delete("/deleteCaptain", captainAuth_middleware_default, delete_controller_default);
+router.post("/verify-vehicle", captainAuth_middleware_default, registerVehicle_controller_default);
+router.post("/logout", logout_controller_default);
+var actions_routes_default = router;
 
 // src/index.ts
 import cookieParser from "cookie-parser";
 
-// src/routes/rideRoutes.ts
+// src/routes/rides.routes.ts
 import { Router } from "express";
 
-// src/services/rideServices/rideAccept.ts
+// src/services/rides.services/rideAccept.service.ts
 import { availability } from "@prisma/client";
 
 // src/config/redis.ts
@@ -314,14 +407,15 @@ async function sendProducerMessage(topic, data) {
       topic,
       messages: [{ value: JSON.stringify(data) }]
     });
+    console.log(`${topic} sent`);
   } catch (error) {
     console.log(`error in sending ${topic}: ${error}`);
   }
 }
 var producerTemplate_default = sendProducerMessage;
 
-// src/services/rideServices/rideAccept.ts
-async function rideAccept(captainId, rideId) {
+// src/services/rides.services/rideAccept.service.ts
+async function rideAccept(captainId, rideId, vehicle, vehicle_number) {
   try {
     await database_default.captains.updateMany({
       where: { captainId, is_available: availability.AVAILABLE },
@@ -330,6 +424,11 @@ async function rideAccept(captainId, rideId) {
       }
     });
     const rideData = await redis_default.hgetall(`ride:${rideId}`);
+    rideData.captainId = captainId;
+    rideData.vehicle = vehicle;
+    rideData.vehicle_number = vehicle_number;
+    await redis_default.hset(`rideData:${rideData.userId}`, rideData);
+    await redis_default.hset(`ride:${rideId}`, rideData);
     await producerTemplate_default("ride-accepted", { captainId, rideData });
   } catch (error) {
     if (error instanceof Error) {
@@ -338,9 +437,9 @@ async function rideAccept(captainId, rideId) {
     }
   }
 }
-var rideAccept_default = rideAccept;
+var rideAccept_service_default = rideAccept;
 
-// src/services/rideServices/rideComplete.ts
+// src/services/rides.services/rideComplete.service.ts
 import { availability as availability2 } from "@prisma/client";
 async function rideComplete(captainId, rideId) {
   try {
@@ -352,7 +451,7 @@ async function rideComplete(captainId, rideId) {
     });
     const rideData = await redis_default.hgetall(`ride:${rideId}`);
     if (captainId && rideData) {
-      await producerTemplate_default("payment-requested", { captainId, rideData });
+      await producerTemplate_default("payment-requested-notify-user", { rideData, captainId });
     }
   } catch (error) {
     if (error instanceof Error) {
@@ -361,23 +460,45 @@ async function rideComplete(captainId, rideId) {
     }
   }
 }
-var rideComplete_default = rideComplete;
+var rideComplete_service_default = rideComplete;
 
-// src/services/rideServices/index.ts
-var rideService = { rideAccept: rideAccept_default, rideComplete: rideComplete_default };
+// src/services/rides.services/index.service.ts
+var rideService = { rideAccept: rideAccept_service_default, rideComplete: rideComplete_service_default };
 
-// src/controllers/ride/rideAccepted.ts
+// src/controllers/rides.controllers/rideAccepted.controller.ts
 async function handleRideAccepted(req, res) {
   try {
-    const { rideId } = req.body;
+    const { rideId, vehicle, vehicle_number } = req.body;
     const { captainId } = req.captain;
+    if (!rideId) {
+      res.status(400).json({
+        message: "rideId not provided"
+      });
+      return;
+    }
     if (!captainId) {
       res.status(400).json({
         message: "Captain not authorized"
       });
       return;
     }
-    await rideService.rideAccept(captainId, rideId);
+    const rideData = await redis_default.hgetall(`ride:${rideId}`);
+    console.log("rd: ", rideData);
+    if (Object.keys(rideData).length === 0) {
+      res.status(410).json({
+        message: "ride expired!"
+      });
+      return;
+    }
+    ;
+    if (Object.keys(rideData).includes("captainId")) {
+      res.status(409).json({
+        message: "ride is already assigned to another captain!"
+      });
+      return;
+    }
+    ;
+    await rideService.rideAccept(captainId, rideId, vehicle, vehicle_number);
     res.status(200).json({
       message: `Ride accepted by: ${captainId}`
     });
@@ -389,9 +510,9 @@ async function handleRideAccepted(req, res) {
     }
   }
 }
-var rideAccepted_default = handleRideAccepted;
+var rideAccepted_controller_default = handleRideAccepted;
 
-// src/controllers/ride/rideCompleted.ts
+// src/controllers/rides.controllers/rideCompleted.controller.ts
 async function handleRideCompleted(req, res) {
   try {
     const { rideId } = req.body;
@@ -414,57 +535,63 @@ async function handleRideCompleted(req, res) {
     }
   }
 }
-var rideCompleted_default = handleRideCompleted;
+var rideCompleted_controller_default = handleRideCompleted;
 
-// src/routes/rideRoutes.ts
+// src/routes/rides.routes.ts
 var router2 = Router();
-router2.route("/acceptRide").post(captainAuth_default, rideAccepted_default);
-router2.route("/rideCompleted").post(captainAuth_default, rideCompleted_default);
-var rideRoutes_default = router2;
+router2.route("/acceptRide").post(captainAuth_middleware_default, rideAccepted_controller_default);
+router2.route("/rideCompleted").post(captainAuth_middleware_default, rideCompleted_controller_default);
+var rides_routes_default = router2;
 
 // src/kafka/consumerInIt.ts
-var getCaptainConsumer = kafkaClient_default.consumer({ groupId: "get-captain-group" });
-var acceptRideConsumer = kafkaClient_default.consumer({ groupId: "accept-ride-group" });
-var rideSavedConsumer = kafkaClient_default.consumer({ groupId: "ride-saved-group" });
-var captain_payment_consumer = kafkaClient_default.consumer({ groupId: "captain-payment" });
+var get_captain_consumer = kafkaClient_default.consumer({ groupId: "get-captain-group" });
+var update_captain_earnings_consumer = kafkaClient_default.consumer({ groupId: "update-captain-earnings" });
+var ride_cancelled_consumer = kafkaClient_default.consumer({ groupId: "ride-cancelled-group-captain" });
+var captain_location_update_consumer = kafkaClient_default.consumer({ groupId: "captain-location-update" });
 async function consumerInit() {
   await Promise.all([
-    getCaptainConsumer.connect(),
-    acceptRideConsumer.connect(),
-    rideSavedConsumer.connect(),
-    captain_payment_consumer.connect()
+    get_captain_consumer.connect(),
+    update_captain_earnings_consumer.connect(),
+    ride_cancelled_consumer.connect(),
+    captain_location_update_consumer.connect()
   ]);
 }
 
-// src/kafka/handlers/acceptRideHandler.ts
-async function acceptRideHandler({ message }) {
+// src/captainCoordsMap.ts
+var captainCoordsMap = /* @__PURE__ */ new Map();
+var captainCoordsMap_default = captainCoordsMap;
+
+// src/kafka/handlers/locationUpdate.handler.ts
+async function captainLocationUpdateHandler({ message }) {
   try {
-    const { captain, rideData } = JSON.parse(message.value.toString());
-    const { rideId } = rideData;
-    await redis_default.hmset(`ride:${rideId}`, rideData);
-    await redis_default.expire(`ride:${rideId}`, 24 * 3600);
+    const { coordinates, captainId } = JSON.parse(message.value.toString());
+    const captain_redis_coord = await redis_default.hgetall(`captain-location-updates:${captainId}`);
+    const latitudeChanged = coordinates.latitude !== Number(captain_redis_coord.latitude);
+    const longitudeChanged = coordinates.longitude !== Number(captain_redis_coord.longitude);
+    if (!latitudeChanged && !longitudeChanged) return;
+    await redis_default.hset(`captain-location-updates:${captainId}`, { latitude: String(coordinates.latitude), longitude: String(coordinates.longitude) });
+    await redis_default.expire(`captain-location-updates:${captainId}`, 3600);
+    captainCoordsMap_default.set(captainId, coordinates);
   } catch (error) {
-    if (error instanceof Error) {
-      throw new Error("Error in acceptRideHandler: " + error.message);
-    }
+    throw new Error("Error in Captain-Location-Update handler: " + error.message);
   }
 }
-var acceptRideHandler_default = acceptRideHandler;
+var locationUpdate_handler_default = captainLocationUpdateHandler;
 
-// src/kafka/consumers/acceptRideConsumer.ts
-async function acceptRide() {
+// src/kafka/consumers/locationUpdate.consumer.ts
+async function captainLocationUpdate() {
   try {
-    await acceptRideConsumer.subscribe({ topic: "accept-ride", fromBeginning: true });
-    await acceptRideConsumer.run({
-      eachMessage: acceptRideHandler_default
+    await captain_location_update_consumer.subscribe({ topic: "captain-location-update", fromBeginning: true });
+    await captain_location_update_consumer.run({
+      eachMessage: locationUpdate_handler_default
     });
   } catch (error) {
-    console.log("error in getting accept-ride request: ", error);
+    throw new Error("Error in Captain-Location-Update consumer: " + error.message);
   }
 }
-var acceptRideConsumer_default = acceptRide;
+var locationUpdate_consumer_default = captainLocationUpdate;
 
-// src/kafka/handlers/captainPaymentHandler.ts
+// src/kafka/handlers/captainPayment.handler.ts
 async function captainPaymentHandler({ message }) {
   try {
     const { fare, payment_id, orderId, order, userId, rideId, captainId } = JSON.parse(message.value.toString());
@@ -481,31 +608,31 @@ async function captainPaymentHandler({ message }) {
     });
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(`Error in captain-payment handler: ${error.message}`);
+      throw new Error(`Error in update-captain-payment handler: ${error.message}`);
     }
   }
 }
-var captainPaymentHandler_default = captainPaymentHandler;
+var captainPayment_handler_default = captainPaymentHandler;
 
-// src/kafka/consumers/captainPaymentConsumer.ts
+// src/kafka/consumers/captainPayment.consumer.ts
 async function captainPayment() {
   try {
-    await captain_payment_consumer.subscribe({ topic: "captain-payment", fromBeginning: true });
-    await captain_payment_consumer.run({
-      eachMessage: captainPaymentHandler_default
+    await update_captain_earnings_consumer.subscribe({ topic: "update-captain-earnings", fromBeginning: true });
+    await update_captain_earnings_consumer.run({
+      eachMessage: captainPayment_handler_default
     });
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(`Error in captain-payment consumer: ${error.message}`);
+      throw new Error(`Error in update-captain-earnings consumer: ${error.message}`);
     }
   }
 }
-var captainPaymentConsumer_default = captainPayment;
+var captainPayment_consumer_default = captainPayment;
 
 // src/utils/findCaptains.ts
-import { availability as availability3 } from "@prisma/client";
+import { availability as availability3, vehicleVerified as vehicleVerified2 } from "@prisma/client";
 import { getBoundsOfDistance } from "geolib";
-async function findCaptains(locationCoordinates, radius) {
+async function findCaptains(locationCoordinates, vehicle, radius) {
   try {
     const { pickUpLocation_latitude: userLatitude, pickUpLocation_longitude: userLongitude } = locationCoordinates;
     const radiusInMeter = radius * 1e3;
@@ -515,18 +642,28 @@ async function findCaptains(locationCoordinates, radius) {
     );
     const [sw, ne] = bounds;
     const captains = await database_default.$queryRaw`
-            SELECT * FROM captains
+            SELECT *,
+            ST_distance_sphere(
+                    point(${userLongitude}, ${userLatitude}),
+                    point(longitude, latitude)
+            ) AS Distance
+            FROM captains
             WHERE
                 latitude BETWEEN ${sw.latitude} AND ${ne.latitude}
                 AND
                 longitude BETWEEN ${sw.longitude} AND ${ne.longitude}
                 AND
+                vehicle_type=${vehicle}
+                AND
                 is_available=${availability3.AVAILABLE}
                 AND
+                vehicle_verified=${vehicleVerified2.VERIFIED}
+                AND
                 ST_distance_sphere(
-                    point(${userLatitude}, ${userLongitude}),
-                    point(latitude, longitude)
+                    point(${userLongitude}, ${userLatitude}),
+                    point(longitude, latitude)
                 ) <= ${radiusInMeter}
+                ORDER BY Distance ASC
             `;
     return captains;
   } catch (error) {
@@ -538,32 +675,74 @@ async function findCaptains(locationCoordinates, radius) {
 }
 var findCaptains_default = findCaptains;
 
-// src/kafka/handlers/getCaptainHandler.ts
+// src/kafka/handlers/getCaptain.handler.ts
 async function getCaptainHandler({ message }) {
   const rideData = JSON.parse(message.value.toString());
+  const { rideId, vehicle } = rideData;
   const { pickUpLocation_latitude, pickUpLocation_longitude } = rideData;
+  let captains = [];
   if (pickUpLocation_latitude && pickUpLocation_longitude) {
-    const captains = await findCaptains_default({ pickUpLocation_latitude, pickUpLocation_longitude }, 5);
-    if (!captains) {
-      await producerTemplate_default("no-captain-found", { rideData });
-    }
-    await producerTemplate_default("captains-fetched", { captains, rideData });
+    console.log("Finding captains near:", pickUpLocation_latitude, pickUpLocation_longitude);
+    captains = await findCaptains_default({ pickUpLocation_latitude, pickUpLocation_longitude }, vehicle, 5);
   }
+  console.log("captains found: ", captains);
+  if (captains.length === 0) {
+    await producerTemplate_default("no-captain-found-notify-ride", { rideData });
+    await producerTemplate_default("no-captain-found-notify-gateway", { rideData });
+    await producerTemplate_default("no-captain-found-notify-user", { rideData });
+    return;
+  }
+  await producerTemplate_default("captains-fetched", { captains, rideData });
+  await redis_default.hset(`ride:${rideId}`, rideData);
 }
-var getCaptainHandler_default = getCaptainHandler;
+var getCaptain_handler_default = getCaptainHandler;
 
-// src/kafka/consumers/getCaptainConsumer.ts
+// src/kafka/consumers/getCaptain.consumer.ts
 async function getCaptainRequest() {
   try {
-    await getCaptainConsumer.subscribe({ topic: "get-captains", fromBeginning: true });
-    await getCaptainConsumer.run({
-      eachMessage: getCaptainHandler_default
+    await get_captain_consumer.subscribe({ topic: "get-captains", fromBeginning: true });
+    await get_captain_consumer.run({
+      eachMessage: getCaptain_handler_default
     });
   } catch (error) {
     console.log("error in getting get-captains request: ", error);
   }
 }
-var getCaptainConsumer_default = getCaptainRequest;
+var getCaptain_consumer_default = getCaptainRequest;
+
+// src/kafka/handlers/rideCancelled.handler.ts
+import { availability as availability4 } from "@prisma/client";
+async function rideCancelledHandler({ message }) {
+  try {
+    const { rideData } = JSON.parse(message.value.toString());
+    const { captainId } = rideData;
+    await database_default.captains.update({
+      where: {
+        captainId
+      },
+      data: {
+        is_available: availability4.AVAILABLE
+      }
+    });
+    await producerTemplate_default("ride-cancelled-notify-captain", { rideData });
+  } catch (error) {
+    throw new Error("Error in getting ride-cancelled handler(captain): " + error.message);
+  }
+}
+var rideCancelled_handler_default = rideCancelledHandler;
+
+// src/kafka/consumers/rideCancelled.consumer.ts
+async function rideCancelled() {
+  try {
+    await ride_cancelled_consumer.subscribe({ topic: "ride-cancelled" });
+    await ride_cancelled_consumer.run({
+      eachMessage: rideCancelled_handler_default
+    });
+  } catch (error) {
+    throw new Error("Error in getting ride-cancelled consumer(captain): " + error.message);
+  }
+}
+var rideCancelled_consumer_default = rideCancelled;
 
 // src/kafka/kafkaAdmin.ts
 async function kafkaInit() {
@@ -571,7 +750,7 @@ async function kafkaInit() {
   console.log("Admin connecting...");
   await admin.connect();
   console.log("Admin connected...");
-  const topics = ["ride-accepted"];
+  const topics = ["ride-cancelled", "captain-location-update", "update-captain-earnings", "get-captains"];
   const existingTopics = await admin.listTopics();
   const topicsToCreate = topics.filter((t) => !existingTopics.includes(t));
   if (topicsToCreate.length > 0) {
@@ -584,7 +763,7 @@ async function kafkaInit() {
 }
 var kafkaAdmin_default = kafkaInit;
 
-// src/kafka/index.ts
+// src/kafka/index.kafka.ts
 var startKafka = async () => {
   try {
     await kafkaAdmin_default();
@@ -594,14 +773,57 @@ var startKafka = async () => {
     console.log("Producer initialization...");
     await producerInit();
     console.log("Producer initializated");
-    await getCaptainConsumer_default();
-    await acceptRideConsumer_default();
-    await captainPaymentConsumer_default();
+    await getCaptain_consumer_default();
+    await captainPayment_consumer_default();
+    await locationUpdate_consumer_default();
+    await rideCancelled_consumer_default();
   } catch (error) {
     console.log("error in initializing kafka: ", error);
   }
 };
-var kafka_default = startKafka;
+var index_kafka_default = startKafka;
+
+// src/utils/bulkUpdate.ts
+import _ from "lodash";
+
+// src/utils/bulkInsertDB.ts
+async function bulkInsertDB(chunks) {
+  for (const chunk of chunks) {
+    const ids = chunk.map(([captainId, coordinates]) => `'${captainId}'`).join(", ");
+    const latitudeCases = chunk.map(([captainId, coordinates]) => `WHEN '${captainId}' THEN ${coordinates.latitude}`).join(" ");
+    const longitudeCases = chunk.map(([captainId, coordinates]) => `WHEN '${captainId}' THEN ${coordinates.longitude}`).join(" ");
+    const query = `
+                UPDATE captains
+                SET 
+                latitude = CASE captainId ${latitudeCases} END,
+                longitude = CASE captainId ${longitudeCases} END
+                WHERE captainId IN (${ids})
+            `;
+    await database_default.$executeRawUnsafe(query);
+  }
+}
+var bulkInsertDB_default = bulkInsertDB;
+
+// src/utils/bulkUpdate.ts
+async function bulkUpdateLocation() {
+  try {
+    let buffer;
+    setInterval(async () => {
+      buffer = Array.from(captainCoordsMap_default.entries());
+      if (buffer.length === 0) return;
+      const chunks = _.chunk(buffer, 10);
+      try {
+        await bulkInsertDB_default(chunks);
+        captainCoordsMap_default.clear();
+      } catch (error) {
+        throw new Error("Error in bulk inserting in DB: " + error.message);
+      }
+    }, 60 * 1e3);
+  } catch (error) {
+    throw new Error("Error in bulk updating database: " + error.message);
+  }
+}
+var bulkUpdate_default = bulkUpdateLocation;
 
 // src/index.ts
 dotenv3.config();
@@ -612,19 +834,10 @@ app.use(express2.urlencoded({ extended: true }));
 app.get("/", (req, res) => {
   res.send("Hello! I am captain-service");
 });
-kafka_default();
-app.use("/actions", captainRoutes_default);
-app.use("/rides", rideRoutes_default);
-app.post("/loc", async (req, res) => {
-  const { locationCoordinates } = req.body;
-  try {
-    const captains = await findCaptains_default(locationCoordinates, 5);
-    res.json(captains);
-  } catch (error) {
-    console.error("Error finding captains:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-});
+index_kafka_default();
+bulkUpdate_default();
+app.use("/actions", actions_routes_default);
+app.use("/rides", rides_routes_default);
 app.listen(Number(process.env.PORT), () => {
   console.log("Captain service is running!");
 });
