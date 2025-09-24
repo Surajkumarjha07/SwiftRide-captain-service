@@ -1,48 +1,53 @@
 👤 Captain Service
 
-The Captain Service is a backend module responsible for managing captain information and accepting ride requests.
+This Captain Service is an internal backend service of SwiftRide (Ride-Sharing platform), which is responsible for managing captain information, accepting ride requests, and other captain related tasks.
 
 -----------------------------------------------------------------------------------------------------------------------------------------------
 
 🚀 Features
 
-✅ Profile Management (Create, Update, Delete)
-
-✅ User Authentication (JWT-based or OAuth)
-
-✅ API Endpoints for seamless integration
+✅ Profile Management (Create, Update, Delete)  
+✅ User Authentication (JWT-based or OAuth)  
+✅ Finding nearby captains within 5 km range  
+✅ Accept rides, request and accept payments  
 
 -----------------------------------------------------------------------------------------------------------------------------------------------
 
 🛠 Technologies Used
 
-⚛️ React Native
-
-🚀 Node.js
-
-⚡ Express
-
-🗄 MySQL
-
-🔄 Kafka
+✅ Node.js  
+✅ Express  
+✅ TypeScript  
+✅ MySQL  
+✅ Kafka  
+✅ Docker  
+✅ Redis  
+✅ Prisma ORM  
 
 -----------------------------------------------------------------------------------------------------------------------------------------------
 
-📦 Installation
-
 ✅ Prerequisites
 
-Ensure you have the following installed:
+Ensure you have the following installed ->  
+Node.js (for JavaScript/TypeScript backend)  
+Express  
 
-Node.js (for JavaScript/TypeScript backend)
-Required Packages:
-express
-bcrypt
-jsonwebtoken
-dotenv
-prisma
-nodemon
-MySQL (Database)
+Required Packages ->  
+bcrypt  
+jsonwebtoken  
+dotenv  
+prisma  
+nodemon  
+tsup (for TypeScript)  
+typescript  (for TypeScript)  
+concurrently  (for TypeScript)  
+ioredis  
+kafkajs  
+lodash  
+geolib  
+
+Database ->  
+MySQL  
 
 -----------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -57,7 +62,8 @@ git clone https://github.com/Surajkumarjha07/SwiftRide-captain-service.git
 npm install
 
 3️⃣ Set Up Environment Variables
-Create a .env file and configure the following variables:
+
+Create a .env file and configure the following variables ->  
 
 DATABASE_URL=your-database-url
 PORT=your-port-number
