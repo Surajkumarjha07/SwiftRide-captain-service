@@ -26,7 +26,7 @@ This Captain Service is an internal backend service of SwiftRide (Ride-Sharing p
 
 -----------------------------------------------------------------------------------------------------------------------------------------------
 
-✅ Prerequisites
+📋 Prerequisites  
 
 Ensure you have the following installed ->  
 Node.js (for JavaScript/TypeScript backend)  
