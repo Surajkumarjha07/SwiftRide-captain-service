@@ -10,6 +10,7 @@ This Captain Service is an internal backend service of SwiftRide (Ride-Sharing p
 ✅ User Authentication (JWT-based or OAuth)  
 ✅ Finding nearby captains within 5 km range  
 ✅ Accept rides, request and accept payments  
+✅ Updates captain location to the database every minute, efficiently with bulk-insert
 
 -----------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -48,6 +49,10 @@ geolib
 
 Database ->  
 MySQL  
+
+Ensure you have the following tools running in your local machine ->  
+Confluent Kafka Docker Image  
+Redis Docker Image  
 
 -----------------------------------------------------------------------------------------------------------------------------------------------
 
