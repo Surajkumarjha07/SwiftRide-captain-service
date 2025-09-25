@@ -1,6 +1,6 @@
 👤 Captain Service
 
-This Captain Service is an internal backend service of SwiftRide (Ride-Sharing platform), which is responsible for managing captain information, accepting ride requests, and other captain related tasks.
+The Captain Service is an internal backend service of SwiftRide (Ride-Sharing platform), which is responsible for managing captain information, accepting ride requests, and other captain related tasks.
 
 -----------------------------------------------------------------------------------------------------------------------------------------------
 
