@@ -18,7 +18,7 @@ app.get("/", (req: Request, res: Response) => {
 })
 
 // start kafka
-startKafka();
+await startKafka();
 
 // timely updates the location in the database
 bulkUpdateLocation();
