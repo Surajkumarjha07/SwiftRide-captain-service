@@ -51,6 +51,7 @@ var logInCaptain = async ({ email, password }) => {
     if (!captain || !passwordMatched) {
       throw new Error("Incorrect email or password!");
     }
+    console.log("SECRET_KEY being used:", JSON.stringify(process.env.JWT_SECRET));
     const token = jwt.sign(
       {
         captainId: captain.captainId,
@@ -371,7 +372,20 @@ import { availability } from "@prisma/client";
 
 // src/config/redis.ts
 import { Redis } from "ioredis";
-var redis = new Redis();
+var REDIS_HOST = process.env.REDIS_HOST || "localhost";
+var REDIS_PORT = Number(process.env.REDIS_PORT) || 6379;
+var redis = new Redis({
+  host: REDIS_HOST,
+  port: REDIS_PORT
+});
+redis.on("connect", () => {
+  console.log(
+    `Redis connected: ${REDIS_HOST}:${REDIS_PORT}`
+  );
+});
+redis.on("error", (err) => {
+  console.error("Redis Error:", err);
+});
 var redis_default = redis;
 
 // src/kafka/producerInIt.ts
@@ -381,7 +395,7 @@ import { Partitioners } from "kafkajs";
 import { Kafka, logLevel } from "kafkajs";
 var kafka = new Kafka({
   clientId: "captain-service",
-  brokers: ["localhost:9092"],
+  brokers: [process.env.KAFKA_BROKER || "localhost:9092"],
   connectionTimeout: 1e4,
   requestTimeout: 3e4,
   retry: {
@@ -643,25 +657,25 @@ async function findCaptains(locationCoordinates, vehicle, radius) {
     const [sw, ne] = bounds;
     const captains = await database_default.$queryRaw`
             SELECT *,
-            ST_distance_sphere(
-                    point(${userLongitude}, ${userLatitude}),
-                    point(longitude, latitude)
+            ST_DistanceSphere(
+                    ST_MakePoint(${userLongitude}::double precision, ${userLatitude}::double precision),
+                    ST_MakePoint(longitude, latitude)
             ) AS Distance
             FROM captains
             WHERE
-                latitude BETWEEN ${sw.latitude} AND ${ne.latitude}
+                latitude BETWEEN ${sw.latitude}::double precision AND ${ne.latitude}::double precision
                 AND
-                longitude BETWEEN ${sw.longitude} AND ${ne.longitude}
+                longitude BETWEEN ${sw.longitude}::double precision AND ${ne.longitude}::double precision
                 AND
-                vehicle_type=${vehicle}
+                vehicle_type=${vehicle}::"vehicles"
                 AND
-                is_available=${availability3.AVAILABLE}
+                is_available=${availability3.AVAILABLE}::"availability"
                 AND
-                vehicle_verified=${vehicleVerified2.VERIFIED}
+                vehicle_verified=${vehicleVerified2.VERIFIED}::"vehicleVerified"
                 AND
-                ST_distance_sphere(
-                    point(${userLongitude}, ${userLatitude}),
-                    point(longitude, latitude)
+                ST_DistanceSphere(
+                    ST_MakePoint(${userLongitude}::double precision, ${userLatitude}::double precision),
+                    ST_MakePoint(longitude, latitude)
                 ) <= ${radiusInMeter}
                 ORDER BY Distance ASC
             `;
@@ -795,9 +809,9 @@ async function bulkInsertDB(chunks) {
     const query = `
                 UPDATE captains
                 SET 
-                latitude = CASE captainId ${latitudeCases} END,
-                longitude = CASE captainId ${longitudeCases} END
-                WHERE captainId IN (${ids})
+                latitude = CASE "captainId" ${latitudeCases} END,
+                longitude = CASE "captainId" ${longitudeCases} END
+                WHERE "captainId" IN (${ids})
             `;
     await database_default.$executeRawUnsafe(query);
   }

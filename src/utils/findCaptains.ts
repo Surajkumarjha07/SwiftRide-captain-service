@@ -17,25 +17,25 @@ async function findCaptains(locationCoordinates: locationType, vehicle: string, 
 
         const captains = await prisma.$queryRaw`
             SELECT *,
-            ST_distance_sphere(
-                    point(${userLongitude}, ${userLatitude}),
-                    point(longitude, latitude)
+            ST_DistanceSphere(
+                    ST_MakePoint(${userLongitude}::double precision, ${userLatitude}::double precision),
+                    ST_MakePoint(longitude, latitude)
             ) AS Distance
             FROM captains
             WHERE
-                latitude BETWEEN ${sw.latitude} AND ${ne.latitude}
+                latitude BETWEEN ${sw.latitude}::double precision AND ${ne.latitude}::double precision
                 AND
-                longitude BETWEEN ${sw.longitude} AND ${ne.longitude}
+                longitude BETWEEN ${sw.longitude}::double precision AND ${ne.longitude}::double precision
                 AND
-                vehicle_type=${vehicle}
+                vehicle_type=${vehicle}::"vehicles"
                 AND
-                is_available=${availability.AVAILABLE}
+                is_available=${availability.AVAILABLE}::"availability"
                 AND
-                vehicle_verified=${vehicleVerified.VERIFIED}
+                vehicle_verified=${vehicleVerified.VERIFIED}::"vehicleVerified"
                 AND
-                ST_distance_sphere(
-                    point(${userLongitude}, ${userLatitude}),
-                    point(longitude, latitude)
+                ST_DistanceSphere(
+                    ST_MakePoint(${userLongitude}::double precision, ${userLatitude}::double precision),
+                    ST_MakePoint(longitude, latitude)
                 ) <= ${radiusInMeter}
                 ORDER BY Distance ASC
             `
