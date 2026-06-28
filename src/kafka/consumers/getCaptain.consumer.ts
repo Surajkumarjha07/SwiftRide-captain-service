@@ -8,7 +8,7 @@ async function getCaptainRequest() {
             eachMessage: getCaptainHandler
         })
     } catch (error) {
-        console.log("error in getting get-captains request: ", error);
+        throw new Error(`error in getting get-captains request:  ${(error as Error).message}`);
     }
 }
 
