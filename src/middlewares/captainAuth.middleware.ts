@@ -14,7 +14,7 @@ async function captainAuthenticate(req: Request, res: Response, next: NextFuncti
     }
 
     try {
-        const verified = jwt.verify(token, process.env.JWT_SECRET!);
+        const verified = jwt.verify(token, process.env.CAPTAIN_JWT_SECRET!);
         if (verified) {
             req.captain = verified as CaptainPayload;
             next();
