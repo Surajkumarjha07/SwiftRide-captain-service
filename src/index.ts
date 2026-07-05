@@ -26,6 +26,6 @@ bulkUpdateLocation();
 app.use("/actions", captainRoutes);
 app.use("/rides", rideRoutes);
 
-app.listen(Number(process.env.PORT), () => {
+app.listen(Number(process.env.CAPTAIN_SERVICE_PORT), () => {
     console.log("Captain service is running!");
 })

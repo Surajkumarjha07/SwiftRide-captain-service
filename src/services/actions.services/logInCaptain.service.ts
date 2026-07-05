@@ -19,8 +19,6 @@ const logInCaptain = async ({ email, password }: loginType) => {
             throw new Error("Incorrect email or password!");
         }
 
-        console.log("SECRET_KEY being used:", JSON.stringify(process.env.JWT_SECRET));
-
         const token = jwt.sign({
             captainId: captain.captainId,
             captainEmail: email,
@@ -30,7 +28,7 @@ const logInCaptain = async ({ email, password }: loginType) => {
             vehicleNo: captain.vehicle_number,
             isVehicleVerified: captain.vehicle_verified
         },
-            process.env.JWT_SECRET!,
+            process.env.CAPTAIN_JWT_SECRET!,
             { expiresIn: "1h" }
         );
 
