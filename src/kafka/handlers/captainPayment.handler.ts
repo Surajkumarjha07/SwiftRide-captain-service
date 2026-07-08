@@ -4,7 +4,7 @@ import prisma from "../../config/database.js";
 async function captainPaymentHandler({ message }: EachMessagePayload) {
     try {
         const { fare, payment_id, orderId, order, userId, rideId, captainId } = JSON.parse(message.value!.toString());
-        const { captain_commission } = order;
+        const { captainCommission } = order;
 
         await prisma.captains.update({
             where: {
@@ -13,7 +13,7 @@ async function captainPaymentHandler({ message }: EachMessagePayload) {
 
             data: {
                 total_earnings: {
-                    increment: captain_commission
+                    increment: captainCommission
                 }
             }
         })
