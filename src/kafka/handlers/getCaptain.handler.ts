@@ -12,7 +12,7 @@ async function getCaptainHandler({ message }: EachMessagePayload) {
 
     if (pickUpLocation_latitude && pickUpLocation_longitude) {
         console.log("Finding captains near:", pickUpLocation_latitude, pickUpLocation_longitude);
-        captains = await findCaptains({ pickUpLocation_latitude, pickUpLocation_longitude }, vehicle, 5);
+        captains = await findCaptains({ pickUpLocation_latitude, pickUpLocation_longitude }, vehicle, 10);
     }
 
     console.log("captains found: ", captains);
